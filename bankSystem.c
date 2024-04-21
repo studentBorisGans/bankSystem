@@ -2,41 +2,53 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <ctype.h> //for tolower function
+
 // #include <sqlite3.h>
 
 
-#define MAX_CHAR 100 
+#define MAX_CHAR 100
+#define NUM_ACCOUNTS_FILE "numAccounts.text"
+#define DEV_USER "boMoney"
+#define DEV_PW "2005"
+
+
+
+typedef struct {
+    char filename[MAX_CHAR];
+} DatabaseManager;
+
 // #define MAX_ENTRIES 100
 
 // typedef struct {
 //     char filename[MAX_CHAR];
 // } DatabaseManager;
 
+// int checkDevAccess(char user[MAX_CHAR], char pw[MAX_CHAR]);
+// void openDev(DatabaseManager db);
+char* toLowerCase(char *str);
+void readNumAccounts(int *numAccounts);
+void writeNumAccounts(int numAccounts);
 
-
+void createAccount(DatabaseManager dp, int *numAccounts);
+int login(DatabaseManager dp, int *numAccounts);
 
 int main() {
     
+    DatabaseManager db;
+    strcpy(db.filename, "userData.csv");
+
+    int numAccounts;
+    readNumAccounts(&numAccounts);
+    printf("Num Accounts: %d\n", numAccounts);
+
+    // FILE *fp = fopen(FILE_NAME, "w");
+    
+    // fclose(fp);
+
     printf("--------------------------------------------------------------------------\n");
     printf("Welcome to BB (Boris' Bank)\n");
     bool cont = true;
-
-    
-    // here
-
-
-  
-    // convert the cJSON object to a JSON string 
-
-
-    // FILE *fp = fopen("database.json", "w");
-    // if (fp == NULL) {
-    //     printf("Error: Unable to open the file\n");
-    //     return 1;
-    // }
-    // fputs(json_str, fp);
-    // fclose(fp);
-
 
     while (cont) {
         int option;
@@ -45,15 +57,18 @@ int main() {
 
         switch (option) {
             case 1:
-                // createAccount();
+                createAccount(db, &numAccounts);
+                login(db, &numAccounts);
                 cont = false;
                 break;
             case 2:
-                // login();
-                cont = false;
+                if (login(db, &numAccounts) == 0) {
+                    cont = false;
+                }
                 break;
             default:
                 printf("Invalid option- Please input either a 1 or 2\n\n");
+                break;
         }
 
 
@@ -65,6 +80,187 @@ int main() {
 
 }
 
-// void makeJSON() {
+
+// int checkDevAccess(char user[MAX_CHAR], char pw[MAX_CHAR]) {
+//     printf("Check DEv Access\n");
+//     if (!strcmp(DEV_USER, user)) {
+//         if (!strcmp(DEV_PW, pw)) {
+//             return 0;
+//         }
+//     }
+//     return 1;
+// }
+
+// void openDev(DatabaseManager db) {
+//     bool cont = true;
+//     printf("----------------------------------------------------------------------------");
+
+//     while (cont) {
+//         int choice;
+//         printf("DEV MODE\n");
+//         printf("   1. Reset DB");
+//         printf("   2. Exit\n");
+//         scanf("Choice: %d", &choice);
+//         switch (choice) {
+//             case 1:
+//                 if (remove(db.filename) == 0) {
+//                     printf("File deleted succesfully");
+//                     writeNumAccounts(0);
+//                 } else {
+//                     printf("Unable to delete file");
+//                 }
+                
+//             case 2:
+//             default:
+//                 printf("Invalid option; please input one of the numbers\n");
+//         }
+//     }
     
 // }
+
+char* toLowerCase(char *str) { // 'char*' returns a pointer to a character which represents the lowercase version of the input string 
+    size_t length = strlen(str); //calculates length 
+    char *lowerStr = malloc(length + 1); // dynamically allocate memory for the lowercase string ( the +1 ensures that theres enough space for the null terminator
+    for (size_t i = 0; i < length; i++) { // this loop iterates over each character. for each character toLower is called. The lowercase character is then assigned to the corresponding position in the Lowerstr array
+        lowerStr[i] = (char)tolower((unsigned char)str[i]); // Convert each character to lowercase
+    }
+    lowerStr[length] = '\0'; // Null-terminate the string . signifies end of the string
+    return lowerStr;
+}
+
+void readNumAccounts(int *numAccounts) {
+    FILE *fp = fopen(NUM_ACCOUNTS_FILE, "r");
+
+    if (fp != NULL) {
+        fscanf(fp, "%d", numAccounts);
+        fclose(fp);
+    } else {
+        *numAccounts = 0;
+    }
+}
+
+void writeNumAccounts(int numAccounts) {
+    FILE *fp = fopen(NUM_ACCOUNTS_FILE, "w");
+    if (fp != NULL) {
+        fprintf(fp, "%d", numAccounts);
+        fclose(fp);
+    }
+}
+
+void createAccount(DatabaseManager db, int *numAccounts) {
+    char user[MAX_CHAR];
+    char pw[MAX_CHAR];
+    bool cont = true;
+
+    while (cont) {
+        cont = false;
+        printf("\n\nCREATE ACCOUNT\n");
+        printf("   Username: ");
+        scanf("%s", user);
+        printf("\n   Password: ");
+        scanf("%s", pw);
+        // printf("\nUser: %s, PW: %s", user, pw);
+
+        FILE *fp = fopen(db.filename, "w");
+        if (fp == NULL) { // Check if file opening was successful
+            printf("Error opening file for reading!\n");
+            exit(1);
+        } 
+
+        char dummyUser[MAX_CHAR] = "";
+        char dummyPw[MAX_CHAR] = "";
+
+        for (int i = 0; i < *numAccounts; i++) {
+            fscanf(fp, "%99[^,]%99[^\n]\n", dummyUser, dummyPw);
+            if (!strcmp(toLowerCase(dummyUser), toLowerCase(user))) {
+                printf("\nAccount with this username already exists, please choose a different username\n\n");
+                cont = true;
+                break; //to prevent a repeat of the above message
+            }
+            if (i == (*numAccounts-1) && strcmp(toLowerCase(dummyUser), toLowerCase(user))) {
+                printf("\nAccount username does not already exist :)");
+
+            }
+        }
+        fclose(fp);
+
+        
+
+    }
+    (*numAccounts)++;
+    writeNumAccounts(*numAccounts);
+    printf("Num Accounts: %d\n", *numAccounts);
+
+    FILE *newfp = fopen(db.filename, "a");
+    if (newfp == NULL) { // Check if file opening was successful
+            printf("Error opening file for writing!\n");
+            exit(1);
+        } 
+    fprintf(newfp, "%s,%s\n", user, pw);
+    fclose(newfp);
+    printf("\nAccount created!!! Please write down your Username and Password somewhere safe and login now.\n\n");
+
+    // fprintf(fp, "%s,%s\n", user, pw);
+    // fprintf(file, "%s,%s,%s,%s,%s,%s\n", entry->title, entry->author, entry->duration, entry->genre, entry->comments, entry->link);
+
+}
+
+int login(DatabaseManager db, int *numAccounts) {
+    bool cont = true;
+    char user[MAX_CHAR];
+    char pw[MAX_CHAR];
+
+
+    if (*numAccounts == 0) {
+        printf("No accounts detected; please select create account to get started \n");
+        return 1;
+    }
+
+    while (cont) {
+        printf("\nLOGIN\n\n");
+        printf("   Username: ");
+        scanf("%s", user);
+        printf("\n   Password: ");
+        scanf("%s", pw);
+
+        // if (checkDevAccess(user, pw) == 0) {
+        //     openDev(db);
+        //     cont = false;
+        //     break;
+        // }
+
+        FILE *fp = fopen(db.filename, "r");
+        if (fp == NULL) { // Check if file opening was successful
+            printf("\nError opening file for reading!\n");
+            exit(1);
+        } 
+
+        for (int i = 0; i < *numAccounts; i++) {
+            char dummyUser[MAX_CHAR];
+            char dummyPw[MAX_CHAR];
+
+            fscanf(fp, "%99[^,],%99[^\n]\n", dummyUser, dummyPw);
+            // printf("\ndummyUser: %s dummyPw: %s\n", dummyUser, dummyPw);
+
+            // if statement if last element AND username doesnt match
+            if (i == (*numAccounts - 1) && strcmp(user, dummyUser)) { //checks if the function is on the last element of the listed accounts and if the username is incorrect; tells the program that the search is unsuccesful
+                printf("\nCould not find account with that username, please try again\n");
+            }
+            if (!strcmp(user, dummyUser)) {
+                if (!strcmp(pw, dummyPw)) {
+                    printf("\nCorrect Username and Password\n");
+                    printf("Logging in...\n");
+                    cont = false;
+                    break;
+                } else {
+                    printf("\nIncorrect Password\n");
+                    printf("Please try again\n");
+                    break;
+                }
+            }
+
+        }
+    }
+    return 0;
+
+}
