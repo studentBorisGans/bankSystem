@@ -2,11 +2,14 @@
 triple:          'arm64-apple-darwin'
 binary-path:     '/Users/borisgans/vsProjects/introProgramming/bankSystem/bankSystem'
 relocations:
-  - { offsetInCU: 0x26, offset: 0x26, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x0, symBinAddr: 0x100003358, symSize: 0x1A4 }
-  - { offsetInCU: 0x42, offset: 0x42, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x0, symBinAddr: 0x100003358, symSize: 0x1A4 }
-  - { offsetInCU: 0xA6, offset: 0xA6, size: 0x8, addend: 0x0, symName: _readNumAccounts, symObjAddr: 0x1A4, symBinAddr: 0x1000034FC, symSize: 0x7C }
-  - { offsetInCU: 0xD8, offset: 0xD8, size: 0x8, addend: 0x0, symName: _createAccount, symObjAddr: 0x220, symBinAddr: 0x100003578, symSize: 0x2F8 }
-  - { offsetInCU: 0x1A1, offset: 0x1A1, size: 0x8, addend: 0x0, symName: _login, symObjAddr: 0x518, symBinAddr: 0x100003870, symSize: 0x228 }
-  - { offsetInCU: 0x265, offset: 0x265, size: 0x8, addend: 0x0, symName: _toLowerCase, symObjAddr: 0x740, symBinAddr: 0x100003A98, symSize: 0xA8 }
-  - { offsetInCU: 0x2C5, offset: 0x2C5, size: 0x8, addend: 0x0, symName: _writeNumAccounts, symObjAddr: 0x7E8, symBinAddr: 0x100003B40, symSize: 0x74 }
+  - { offsetInCU: 0x26, offset: 0x26, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x0, symBinAddr: 0x100002FD8, symSize: 0x200 }
+  - { offsetInCU: 0x49, offset: 0x49, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x0, symBinAddr: 0x100002FD8, symSize: 0x200 }
+  - { offsetInCU: 0xBC, offset: 0xBC, size: 0x8, addend: 0x0, symName: _readNumAccounts, symObjAddr: 0x200, symBinAddr: 0x1000031D8, symSize: 0x7C }
+  - { offsetInCU: 0xEE, offset: 0xEE, size: 0x8, addend: 0x0, symName: _readAccountNumber, symObjAddr: 0x27C, symBinAddr: 0x100003254, symSize: 0x80 }
+  - { offsetInCU: 0x120, offset: 0x120, size: 0x8, addend: 0x0, symName: _createAccount, symObjAddr: 0x2FC, symBinAddr: 0x1000032D4, symSize: 0x3B0 }
+  - { offsetInCU: 0x251, offset: 0x251, size: 0x8, addend: 0x0, symName: _login, symObjAddr: 0x6AC, symBinAddr: 0x100003684, symSize: 0x2BC }
+  - { offsetInCU: 0x341, offset: 0x341, size: 0x8, addend: 0x0, symName: _accountMain, symObjAddr: 0x968, symBinAddr: 0x100003940, symSize: 0x14 }
+  - { offsetInCU: 0x377, offset: 0x377, size: 0x8, addend: 0x0, symName: _toLowerCase, symObjAddr: 0x97C, symBinAddr: 0x100003954, symSize: 0x9C }
+  - { offsetInCU: 0x3D7, offset: 0x3D7, size: 0x8, addend: 0x0, symName: _writeNumAccounts, symObjAddr: 0xA18, symBinAddr: 0x1000039F0, symSize: 0x74 }
+  - { offsetInCU: 0x409, offset: 0x409, size: 0x8, addend: 0x0, symName: _writeAccountNumber, symObjAddr: 0xA8C, symBinAddr: 0x100003A64, symSize: 0x74 }
 ...
