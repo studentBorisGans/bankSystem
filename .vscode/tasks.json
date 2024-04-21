@@ -1,8 +1,9 @@
 {
     "tasks": [
         {
+            "label": "build",
             "type": "cppbuild",
-            "label": "C/C++: gcc build active file",
+            // "label": "C/C++: gcc build active file",
             "command": "/usr/bin/gcc",
             "args": [
                 "-fdiagnostics-color=always",

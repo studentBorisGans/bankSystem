@@ -5,9 +5,30 @@
       "name": "C/C++ Runner: Debug Session",
       "type": "lldb",
       "request": "launch",
-      "args": [],
+      "args": [
+        "-o",
+        "bankSystem",
+        "bankSystem.c",
+        "-lsqlite3"
+
+      ],
       "cwd": "/Users/borisgans/vsProjects/introProgramming/bankSystem",
       "program": "/Users/borisgans/vsProjects/introProgramming/bankSystem/build/Debug/outDebug"
     }
   ]
 }
+
+// {
+//   "version": "0.2.0",
+//   "configurations": [
+//     {
+//       "name": "C/C++ Runner: Debug Session",
+//       "type": "lldb",
+//       "request": "launch",
+//       "program": "/Users/borisgans/vsProjects/introProgramming/bankSystem/bankSystem",
+//       "args": [],
+//       "cwd": "/Users/borisgans/vsProjects/introProgramming/bankSystem",
+//       "preLaunchTask": "build"
+//     }
+//   ]
+// }
