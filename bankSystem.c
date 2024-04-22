@@ -1,3 +1,5 @@
+// How to use sqlite
+// why is my vscode so messed up
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
