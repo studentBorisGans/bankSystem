@@ -37,29 +37,46 @@ typedef struct {
 
 // int checkDevAccess(char user[MAX_CHAR], char pw[MAX_CHAR]);
 // void openDev(DatabaseManager db);
+// int main();
 char* toLowerCase(char *str);
 void readNumAccounts(int *numAccounts);
 void writeNumAccounts(int numAccounts);
 void readAccountNumber(int *accountNumber);
 void writeAccountNumber(int accountNumber);
 
+int initialize(accountDetails *accounts, int *numAccounts, DatabaseManager *db);
+void saveAccounts(accountDetails *accounts, int *numAccounts, DatabaseManager *db);
+int loadAccounts(accountDetails *accounts, int *numAccounts, DatabaseManager *db);
 
-void createAccount(DatabaseManager dp, int *numAccounts, int *accountNumber);
-int login(DatabaseManager dp, int *numAccounts);
-void accountMain(DatabaseManager db, int *numAccounts);
+
+void createAccount(accountDetails *accounts, int *numAccounts, int *accountNumber);
+int login(accountDetails *accounts, int *numAccounts);
+// void accountMain(DatabaseManager db, int *numAccounts);
 
 int main() {
     DatabaseManager db;
     strcpy(db.filename, "userData.csv");
 
     accountDetails accounts[MAX_ACCOUNTS];
+    int numAccounts = 0;
 
-    int numAccounts;
-    readNumAccounts(&numAccounts);
+    
+    if (initialize(accounts, &numAccounts, &db)) {
+        printf("Welcome!!!\n");
+    } else {
+        printf("else\n");
+
+    }
+
+    printf("\nmain: %d", numAccounts);
+
+    // loadAccounts(accounts, &numAccounts, &db);
+
+    // readNumAccounts(&numAccounts);
     printf("Num Accounts: %d\n", numAccounts);
 
-    int accountNumber;
-    readAccountNumber(&accountNumber);
+    int accountNumber = 0;
+    // readAccountNumber(&accountNumber);
     printf("Account number: %d\n", accountNumber);
 
     // FILE *fp = fopen(FILE_NAME, "w");
@@ -77,12 +94,14 @@ int main() {
 
         switch (option) {
             case 1:
-                createAccount(db, &numAccounts, &accountNumber);
-                login(db, &numAccounts);
+                createAccount(accounts, &numAccounts, &accountNumber);
+                saveAccounts(accounts, &numAccounts, &db);
+                login(accounts, &numAccounts);
                 cont = false;
                 break;
             case 2:
-                if (login(db, &numAccounts) == 0) {
+                // loadAccounts(accounts, &numAccounts, &db);
+                if (login(accounts, &numAccounts) == 0) {
                     cont = false;
                 }
                 break;
@@ -91,7 +110,7 @@ int main() {
                 break;
         }
     }
-    accountMain(db, &numAccounts);
+    // accountMain(db, &numAccounts);
 
 
 
@@ -147,51 +166,111 @@ char* toLowerCase(char *str) { // 'char*' returns a pointer to a character which
     return lowerStr;
 }
 
-void readNumAccounts(int *numAccounts) {
-    FILE *fp = fopen(NUM_ACCOUNTS_FILE, "r");
+// void readNumAccounts(int *numAccounts) {
+//     FILE *fp = fopen(NUM_ACCOUNTS_FILE, "r");
 
-    if (fp != NULL) {
-        fscanf(fp, "%d", numAccounts);
-        fclose(fp);
+//     if (fp != NULL) {
+//         fscanf(fp, "%d", numAccounts);
+//         fclose(fp);
+//     } else {
+//         *numAccounts = 0;
+//     }
+// }
+
+// void writeNumAccounts(int numAccounts) {
+//     FILE *fp = fopen(NUM_ACCOUNTS_FILE, "w");
+//     if (fp != NULL) {
+//         fprintf(fp, "%d", numAccounts);
+//         fclose(fp);
+//     }
+// }
+
+// void readAccountNumber(int *accountNumber) {
+//     FILE *fp = fopen(ACCOUNT_NUMS_FILE, "r");
+
+//     if (fp != NULL) {
+//         fscanf(fp, "%d", accountNumber);
+//         fclose(fp);
+//     } else {
+//         *accountNumber = 1;
+//     }
+// }
+
+// void writeAccountNumber(int accountNumber) {
+//     FILE *fp = fopen(ACCOUNT_NUMS_FILE, "w");
+//     if (fp != NULL) {
+//         fprintf(fp, "%d", accountNumber);
+//         fclose(fp);
+//     }
+// }
+
+int initialize(accountDetails *accounts, int *numAccounts, DatabaseManager *db) {
+    printf("\ninitiliazeA: %d", *numAccounts);
+    FILE *fp = fopen(db->filename, "r");
+
+    if (fp == NULL) {
+        printf("It looks like this is the first time you're running my program\n");
+        return 1;
     } else {
-        *numAccounts = 0;
+        printf("Loading past entries...\n");
+        *numAccounts = loadAccounts(accounts, numAccounts, db);
+        printf("\ninitiliazeB: %d", *numAccounts);
+
+        return 0;
     }
 }
 
-void writeNumAccounts(int numAccounts) {
-    FILE *fp = fopen(NUM_ACCOUNTS_FILE, "w");
-    if (fp != NULL) {
-        fprintf(fp, "%d", numAccounts);
-        fclose(fp);
+
+int loadAccounts(accountDetails *accounts, int *numAccounts, DatabaseManager *db) {
+    printf("\nloadAccountsA: %d", *numAccounts);
+    FILE *fp = fopen(db->filename, "r");
+    if (fp == NULL) {
+        printf("\nError opening file for reading :(");
+        exit(1);
+    }
+    rewind(fp);
+    char a[MAX_CHAR];
+    strcpy(a, accounts[*numAccounts].username);
+    char b[MAX_CHAR];
+    strcpy(b, accounts[*numAccounts].pw);
+    printf("%s, %s", a, b);
+
+    // int c = accounts[*numAccounts].accountNum;
+    // int d = accounts[*numAccounts].balance;
+    accountDetails *lastAccount = &accounts[*numAccounts];
+    printf("\nOutput: %d", fscanf(fp, "%99[^,],%99[^,],%d,%d[\n]", lastAccount->username, lastAccount->pw, &lastAccount->accountNum, &lastAccount->balance));
+    printf("%s, %s, %d, %d", lastAccount->username, lastAccount->pw, lastAccount->accountNum, lastAccount->balance);
+
+    while ((*numAccounts < MAX_ACCOUNTS) && 
+    (fscanf(fp, "%99[^,],%99[^,],%d,%d[\n]", lastAccount->username, lastAccount->pw, &lastAccount->accountNum, &lastAccount->balance))== 4) {
+        // numAccounts = &lastAccount->accountNum;
+        (*numAccounts)++;
+        printf("Num accounts: %d", *numAccounts);
+    }
+    fclose(fp);
+    // (*numAccounts)++;
+    printf("\nloadAccountsB: %d", *numAccounts);
+    return *numAccounts;
+}
+
+void saveAccounts(accountDetails *accounts, int *numAccounts, DatabaseManager *db) {
+    FILE *fp = fopen(db->filename, "w");
+    for (int i = 0; i<*numAccounts; i++) {
+        accountDetails *account = &accounts[i];
+        fprintf(fp, "%s,%s,%d,%d\n", account->username, account->pw, account->accountNum, account->balance);
     }
 }
 
-void readAccountNumber(int *accountNumber) {
-    FILE *fp = fopen(ACCOUNT_NUMS_FILE, "r");
 
-    if (fp != NULL) {
-        fscanf(fp, "%d", accountNumber);
-        fclose(fp);
-    } else {
-        *accountNumber = 1;
-    }
-}
-
-void writeAccountNumber(int accountNumber) {
-    FILE *fp = fopen(ACCOUNT_NUMS_FILE, "w");
-    if (fp != NULL) {
-        fprintf(fp, "%d", accountNumber);
-        fclose(fp);
-    }
-}
-
-void createAccount(DatabaseManager db, int *numAccounts, int *accountNumber) {
+void createAccount(accountDetails *accounts, int *numAccounts, int *accountNumber) {
+    accountDetails *lastAccount = &accounts[*numAccounts];
     char user[MAX_CHAR];
     char pw[MAX_CHAR];
     bool cont = true;
 
     while (cont) {
         cont = false;
+        // bool fileExists = true;
         printf("\n\nCREATE ACCOUNT\n");
         printf("   Username: ");
         scanf("%s", user);
@@ -199,23 +278,36 @@ void createAccount(DatabaseManager db, int *numAccounts, int *accountNumber) {
         scanf("%s", pw);
         // printf("\nUser: %s, PW: %s", user, pw);
 
-        FILE *fp = fopen(db.filename, "r");
-        if (fp == NULL) { // Check if file opening was successful
-            printf("Error opening file for reading!\n");
-            FILE *newfp = fopen(db.filename, "w");
-            fclose(newfp);
-            FILE *fp = fopen(db.filename, "r");
+        // FILE *testfp = fopen(db.filename, "r");
+        // if (testfp == NULL) { // Check if file opening was successful
+        //     fileExists = false;
+        //     fclose(db.filename);
+        //     // fclose(fp);
+        //     printf("File does not exist!\n");
+        //     // FILE *newfp = fopen(db.filename, "w");
+        //     // fclose(newfp);
+        //     // FILE *fp = fopen(db.filename, "r");
 
-            // exit(1);
-        } 
+        //     // exit(1);
+        // } 
+
+        // if (!fileExists) {
+        //     FILE *fp = fopen(db)
+        // }
 
         char dummyUser[MAX_CHAR] = "";
         char dummyPw[MAX_CHAR] = "";
-        int garbageAccount;
-        int garbageBalance;
+        // int garbageAccount;
+        // int garbageBalance;
 
         for (int i = 0; i < *numAccounts; i++) {
-            fscanf(fp, "%99[^,]%99[^,]%d[^,]%d[^\n]\n", dummyUser, dummyPw, &garbageAccount, &garbageBalance);
+            accountDetails *account = &accounts[i];
+            strcpy(dummyUser, account->username);
+            strcpy(dummyPw, account->pw);
+            // garbageAccount = account->accountNum;
+            // garbageBalance = account->balance;
+
+            // fscanf(fp, "%99[^,]%99[^,]%d[^,]%d[^\n]\n", dummyUser, dummyPw, &garbageAccount, &garbageBalance); //commas??
             if (!strcmp(toLowerCase(dummyUser), toLowerCase(user))) {
                 printf("\nAccount with this username already exists, please choose a different username\n\n");
                 cont = true;
@@ -226,38 +318,52 @@ void createAccount(DatabaseManager db, int *numAccounts, int *accountNumber) {
 
             }
         }
-        fclose(fp);
-
-        
-
     }
     (*numAccounts)++;
-    writeNumAccounts(*numAccounts);
+    // writeNumAccounts(*numAccounts);
     printf("\nNum Accounts: %d\n", *numAccounts);
 
     int balance = 0;
     (*accountNumber)++;
-    writeAccountNumber(*accountNumber);
+    // writeAccountNumber(*accountNumber);
     printf("Accounts nums: %d\n", *accountNumber);
+
+    strcpy(lastAccount->username,toLowerCase(user));
+    strcpy(lastAccount->pw, toLowerCase(pw));
+    lastAccount->accountNum = *accountNumber;
+    lastAccount->balance = balance;
+
+    // printf("Output: %d", fscanf(fp, "%99[^,]%99[^,]%d[^,]%d[\n]\n", accounts[*numAccounts].username, accounts[*numAccounts].pw, &accounts[*numAccounts].accountNum, &accounts[*numAccounts].balance));
+// here
+    // loadAccounts(accounts, numAccounts, &db);
+
+
+    printf("User: %s", lastAccount->username);
+    printf("User: %s", lastAccount->pw);
+    printf("User: %d", lastAccount->accountNum);
+    printf("User: %d", lastAccount->balance);
+
+
 
     
 
 
-    FILE *newfp = fopen(db.filename, "a");
-    if (newfp == NULL) { // Check if file opening was successful
-            printf("Error opening file for writing!\n");
-            exit(1);
-        } 
-    fprintf(newfp, "%s,%s,%d,%d\n", toLowerCase(user), toLowerCase(pw), *accountNumber, balance);
-    fclose(newfp);
+    // FILE *newfp = fopen(db.filename, "a");
+    // if (newfp == NULL) { // Check if file opening was successful
+    //         printf("Error opening file for writing!\n");
+    //         exit(1);
+    // } 
+    // fprintf(newfp, "%s,%s,%d,%d\n", account->username, account->pw, account->accountNum, account->balance);
+    // fclose(newfp);
     printf("\nAccount created!!! Please write down your Username and Password somewhere safe and login now.\n\n");
-
-    // fprintf(fp, "%s,%s\n", user, pw);
-    // fprintf(file, "%s,%s,%s,%s,%s,%s\n", entry->title, entry->author, entry->duration, entry->genre, entry->comments, entry->link);
-
 }
 
-int login(DatabaseManager db, int *numAccounts) {
+int login(accountDetails *accounts, int *numAccounts) {
+
+    for (int i = 0; i < *numAccounts; i++) {
+        printf("%d : User: %s, Pw: %s, num: %d, balance: %d", i, accounts[i].username, accounts[i].pw, accounts[i].accountNum, accounts[i].balance);
+    }
+
     bool cont = true;
     char user[MAX_CHAR];
     char pw[MAX_CHAR];
@@ -265,7 +371,7 @@ int login(DatabaseManager db, int *numAccounts) {
 
     if (*numAccounts == 0) {
         printf("No accounts detected; please select create account to get started \n");
-        return 1;
+        // return 1;
     }
 
     while (cont) {
@@ -281,21 +387,24 @@ int login(DatabaseManager db, int *numAccounts) {
         //     break;
         // }
 
-        FILE *fp = fopen(db.filename, "r");
-        if (fp == NULL) { // Check if file opening was successful
-            printf("\nError opening file for reading!\n");
-            exit(1);
-        } 
+        // FILE *fp = fopen(db.filename, "r");
+        // if (fp == NULL) { // Check if file opening was successful
+        //     printf("\nError opening file for reading!\n");
+        //     exit(1);
+        // } 
 
         for (int i = 0; i < *numAccounts; i++) {
+            accountDetails *account = &accounts[i];
             char dummyUser[MAX_CHAR];
             char dummyPw[MAX_CHAR];
-            int garbageAccount;
-            int garbageBalance;
+
+            strcpy(dummyUser, account->username);
+            strcpy(dummyPw, account->pw);
             // &garbageAccount, &garbageBalance
             
-            fscanf(fp, "%99[^,],%99[^,],%d[^,],%d[^\n]\n", dummyUser, dummyPw, &garbageAccount, &garbageBalance);
+            // fscanf(fp, "%99[^,],%99[^,],%d[^,],%d[^\n]\n", dummyUser, dummyPw, &garbageAccount, &garbageBalance);
             printf("\ndummyUser: %s dummyPw: %s i is: %d\n", dummyUser, dummyPw, i);
+            // loadAccounts()
 
             // if statement if last element AND username doesnt match
             if (i == (*numAccounts - 1) && strcmp(toLowerCase(user), dummyUser)) { //checks if the function is on the last element of the listed accounts and if the username is incorrect; tells the program that the search is unsuccesful
@@ -320,6 +429,6 @@ int login(DatabaseManager db, int *numAccounts) {
 
 }
 
-void accountMain(DatabaseManager db, int *numAccounts) {
+// void accountMain(DatabaseManager db, int *numAccounts) {
 
-}
+// }
