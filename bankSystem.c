@@ -1,6 +1,6 @@
 // things to fix:
 // at the top of login add a cancel button, same for register; otherwise you can be forever stuck if you choose the wrong option; also return value problem
-// if a user exits the program without using the logout button, their changes do not get saved to the file. maybe add like a "feature" so they input their password to execute their changes before they leave?
+// change it so that whenever they go back to the main screen, the welcome thing and everything reappears
 
 // thing I can add:
 // terminal width thing; at the start ask user for width otherwise it's assumed to be the normal one
@@ -32,132 +32,200 @@ typedef struct {
     char pw[MAX_CHAR];
     int accountNum;
     float balance;
+    // int numFavs;
 } accountDetails;
+
+typedef struct {
+    char user[MAX_CHAR];
+    char fav1[MAX_CHAR];
+    char fav2[MAX_CHAR];
+    char fav3[MAX_CHAR];
+} favoriteDetails;
 
 char* toLowerCase(char *str);
 void clearBuffer();
-void readNumAccounts(int *numAccounts);
-void writeNumAccounts(int numAccounts);
-void readAccountNumber(int *accountNumber);
-void writeAccountNumber(int accountNumber);
 
-int initialize(DatabaseManager *db);
+int initialize(DatabaseManager *db, DatabaseManager *favs);
 void saveAccounts(accountDetails *accounts, int *numAccounts, DatabaseManager *db);
+// void saveFavorites(accountDetails *accounts, int *numAccounts, DatabaseManager *db);
 int loadAccounts(accountDetails *accounts, int *numAccounts, int *accountNumber, DatabaseManager *db);
+void loadFavorites(favoriteDetails *favorites, DatabaseManager *fav, int *numAccounts);
 
-void createAccount(accountDetails *accounts, int *numAccounts, int *accountNumber, DatabaseManager *db);
-accountDetails login(accountDetails *accounts, int *numAccounts);
 
-void deposit(accountDetails *loggedInAccount, accountDetails *accounts);
-void withdraw(accountDetails *loggedInAccount, accountDetails *accounts);
+void createAccount(accountDetails *accounts, int *numAccounts, int *accountNumber, DatabaseManager *db, DatabaseManager *favs);
+accountDetails login(accountDetails *accounts, int *numAccounts, bool *contFirst, bool *contSecond);
 
+float deposit(accountDetails *loggedInAccount, accountDetails *accounts, bool *changeHasBeenMade);
+float withdraw(accountDetails *loggedInAccount, accountDetails *accounts, bool *changeHasBeenMade);
+void transfer(accountDetails *loggedInAccount, accountDetails *accounts, favoriteDetails *favorite, int *numAcconts);
+
+void request(accountDetails *loggedInAccount, accountDetails *accounts, favoriteDetails *favorites);
+void editFavorites(accountDetails *accounts, favoriteDetails *favorite, int *numAccounts);
+
+void addFavorite(favoriteDetails *favorite, int numberOfFavorites, accountDetails *accounts, int *numAccounts);
+
+int userExists(char *user, accountDetails *accounts, int *numAccounts);
 
 int main() {
+    printf("\033[2J"); // Clear entire screen
+    printf("\033[0m"); //reset text
+
     DatabaseManager db;
     strcpy(db.filename, "userData.csv");
 
+    DatabaseManager favs;
+    strcpy(favs.filename, "userFavs.csv");
+
     accountDetails accounts[MAX_ACCOUNTS];
     accountDetails loggedInAccount;
+
+    favoriteDetails favorites[MAX_ACCOUNTS];
+
     int numAccounts = 0;
 
+    printf("---------------------------------------------------------------------------------------\n");
+    printf("\033[1m"); // Bold text
+    printf("\t\t\tWelcome to BB (Boris' Bank)\n");
+    printf("\033[0m"); //reset text
+    int accountNumber = 0;
+    // int numFavs = 0;
     
-    if (initialize(&db)) {
-        printf("Welcome!!!\n");
+    if (initialize(&db, &favs)) {
+        printf("It looks like this is the first time you're using my program, please select Create Account to get started\n\n");
     } else {
-        printf("Not first time\n");
+        loadAccounts(accounts, &numAccounts, &accountNumber, &db);
+        loadFavorites(favorites, &favs, &numAccounts);
 
     }
 
-    printf("Num Accounts in Main: %d\n", numAccounts);
-    int accountNumber = 0;
 
-    printf("--------------------------------------------------------------------------\n");
-    printf("Welcome to BB (Boris' Bank)\n");
+    bool contProgram = true;
     bool contFirst = true;
     bool contSecond = true;
-    loadAccounts(accounts, &numAccounts, &accountNumber, &db);
 
-    while (contFirst) {
-        int option1;
+    while (contProgram) {
+        while (contFirst) {
+            int option1;
+            contSecond = true;
 
-        // loadAccounts here; so it's just once for one
 
-        printf("1. Create Account\n2. Login\nChoice: ");
-        scanf("%d", &option1);
+            printf("1. Create Account\n2. Login\n3. Terminate Session\nChoice: ");
+            scanf("%d", &option1);
 
-        switch (option1) {
-            case 1:
-                createAccount(accounts, &numAccounts, &accountNumber, &db);
-                loggedInAccount = login(accounts, &numAccounts);
-                contFirst = false;
-                break;
+            switch (option1) {
+                case 1:
+                    contFirst = false;
+                    createAccount(accounts, &numAccounts, &accountNumber, &db, &favs);
+                    loggedInAccount = login(accounts, &numAccounts, &contFirst, &contSecond);
+                    break;
 
-            case 2:
-                // loadAccounts(accounts, &numAccounts, &accountNumber, &db);
-                loggedInAccount = login(accounts, &numAccounts);
-                contFirst = false;
-                break;
+                case 2:
+                    // loadAccounts(accounts, &numAccounts, &accountNumber, &db);
+                    contFirst = false;
+                    loggedInAccount = login(accounts, &numAccounts, &contFirst, &contSecond);
+                    break;
+                case 3:
+                    printf("Thank you for visiting BB\n\n");
+                    exit(EXIT_SUCCESS);
+                default:
+                    printf("Invalid option- Please input either a 1 or 2\n\n");
+                    break;
+            }
+        }
+        // inside account
+        // printf("\033[2J"); // Clear entire screen
 
-            default:
-                printf("Invalid option- Please input either a 1 or 2\n\n");
-                break;
+        bool changeHasBeenMade = false;
+        bool green = false;
+        float change = 0;
+
+        while (contSecond) {
+            int option2;
+            char errorMessage[MAX_CHAR];
+            favoriteDetails *favorite = &favorites[loggedInAccount.accountNum - 1];
+            
+
+            printf("\033[2J"); // Clear entire screen
+            printf("\033[0m"); //reset color
+            printf("\033[0;37m"); //grey
+            printf("User\t\t\t\t  Account Number\t\t\t\tBalance\n");
+            printf("\033[0m"); //reset color
+            printf("---------------------------------------------------------------------------------------\n");
+            printf("\033[0;34m"); //blue text
+            printf("\033[1m"); // Bold text
+            printf("%s", loggedInAccount.username);
+            printf("\t\t\t\t\t%d", loggedInAccount.accountNum);
+            printf("\t\t\t\t\t%.2f\n", loggedInAccount.balance);
+            printf("\033[0m"); //reset text
+
+            if (changeHasBeenMade) {
+                if (green) {
+                    printf("\033[0;32m"); //green text
+                } else {
+                    printf("\033[0;31m"); //red text
+                }
+                printf("\033[1m"); // Bold text
+                printf("\t\t\t\t\t\t\t\t\t\t%.2f", change);
+                printf("\033[0m"); //reset text
+
+                changeHasBeenMade = false;
+            }
+            printf("\n");
+
+            printf("%s", errorMessage);
+            printf("Welcome \033[1m%s\033[0m!\n", loggedInAccount.username);
+            printf("\t\b\b\b\033[38;2;255;165;0m1. Transfer menu\n\033[0m\t\b\b\b\033[0;32m2. Deposit\n\033[0m\t\b\b\b\033[0;31m3. Withdraw\n\033[0m\t\b\b\b4. View + Edit Account Details\n\t\b\b\b5. Log Out\nChoice: ");
+
+            scanf("%d", &option2);
+            errorMessage[0] = '\0';
+
+            switch(option2) {
+                case 1:
+                    if (numAccounts == 1) {
+                        strcpy(errorMessage, "There is only 1 account, therefore you cannot transfer money between accounts.\n");
+                    } else {
+                        transfer(&loggedInAccount, accounts, favorite, &numAccounts);
+                        contSecond = false;
+                    }
+                    
+                    break;
+                case 2: 
+                    change = deposit(&loggedInAccount, accounts, &changeHasBeenMade);
+                    saveAccounts(accounts, &numAccounts, &db);    
+
+                    green = true;
+                    break;
+                case 3:
+                    if (loggedInAccount.balance == 0) {
+                        strcpy(errorMessage, "Please deposit some money before you withdraw\n");
+                        // printf("Please deposit some money before you withdraw\n");
+                    } else {
+                        change = withdraw(&loggedInAccount, accounts, &changeHasBeenMade);
+                        saveAccounts(accounts, &numAccounts, &db);    
+                        green = false;
+                    }
+                    
+                    break;
+                case 4:
+                    // details();
+                    break;
+                case 5:
+                    // logout();
+                    printf("Logging out...\n\n");
+                    contSecond = false;
+                    contFirst = true;
+                    break;
+                default:
+                    strcpy(errorMessage, "Invalid input, please input one integer coressponding to the options listed :)\n");
+                    contSecond = true;
+                    break;
+            }
+
+
+            // contSecond = false;
         }
     }
-    // inside account
-    // printf("\033[2J"); // Clear entire screen
-
-    while (contSecond) {
-        int option2;
-        char errorMessage[MAX_CHAR];
-
-        printf("\033[2J"); // Clear entire screen
-        printf("\033[0m"); //reset color
-        printf("------------------------------------------------------------------------------------\n");
-        printf("\033[0;34m"); //blue text
-        printf("\033[1m"); // Bold text
-        printf("%s", loggedInAccount.username);
-        printf("\t\t\t\t\t%d", loggedInAccount.accountNum);
-        printf("\t\t\t\t\t%.2f\n\n", loggedInAccount.balance);
-        printf("\033[0m"); //reset text
-        printf("%s", errorMessage);
-        printf("Welcome %s!\n", loggedInAccount.username);
-        printf("\t\b\b\b1. Transfer menu\n\t\b\b\b2. Deposit\n\t\b\b\b3. Withdraw\n\t\b\b\b4. View + Edit Account Details\n\t\b\b\b5. Log Out\nChoice: ");
-
-        scanf("%d", &option2);
-        errorMessage[0] = '\0';
-
-        switch(option2) {
-            case 1:
-                // transfer();
-                contSecond = false;
-                break;
-            case 2: 
-                deposit(&loggedInAccount, accounts);
-                break;
-            case 3:
-                withdraw(&loggedInAccount, accounts);
-                break;
-            case 4:
-                // details();
-                break;
-            case 5:
-                // logout();
-                contSecond = false;
-                break;
-            default:
-                strcpy(errorMessage, "Invalid input, please input one integer coressponding to the options listed :)\n");
-                contSecond = true;
-                break;
-        }
-
-
-        // contSecond = false;
-    }
-    saveAccounts(accounts, &numAccounts, &db);    
-
-
     return 0;
-
 }
 
 
@@ -178,11 +246,13 @@ void clearBuffer() {
     }
 }
 
-int initialize(DatabaseManager *db) {
-    FILE *fp = fopen(db->filename, "r");
+int initialize(DatabaseManager *db, DatabaseManager *favs) {
+    FILE *fav = fopen(favs->filename, "r");
+    fclose(fav);
 
+    FILE *fp = fopen(db->filename, "r");
     if (fp == NULL) {
-        printf("It looks like this is the first time you're running my program\n");
+        perror("fp error");
         return 1;
     } else {
         return 0;
@@ -190,7 +260,6 @@ int initialize(DatabaseManager *db) {
 }
 
 int loadAccounts(accountDetails *accounts, int *numAccounts, int *accountNumber, DatabaseManager *db) {
-    printf("\nBefore loadAccounts: %d\n", *numAccounts);
     FILE *fp = fopen(db->filename, "r");
     if (fp == NULL) {
         printf("\nError opening file for reading :(");
@@ -198,7 +267,7 @@ int loadAccounts(accountDetails *accounts, int *numAccounts, int *accountNumber,
     }
     rewind(fp);
 
-    printf("Loading accounts...\n");
+    printf("\t\t\t    Loading accounts...\n");
     while ((fscanf(fp, "%99[^,],%99[^,],%d,%f\n", accounts[*numAccounts].username, accounts[*numAccounts].pw, &accounts[*numAccounts].accountNum, &accounts[*numAccounts].balance)== 4) && 
     (*numAccounts < MAX_ACCOUNTS)) {
         (*numAccounts)++;
@@ -207,8 +276,29 @@ int loadAccounts(accountDetails *accounts, int *numAccounts, int *accountNumber,
     }
 
     fclose(fp);
-    printf("\nafter loadAccounts: %d\n", *numAccounts);
     return *numAccounts;
+}
+
+void loadFavorites(favoriteDetails *favorites, DatabaseManager *fav, int *numAccounts) {
+    FILE *fp = fopen(fav->filename, "r");
+    if (fp == NULL) {
+        printf("\nError opening favorite file for reading :(");
+        exit(1);
+    }
+    rewind(fp);
+
+    printf("\t\t\t    Loading favorites...\n\n");
+    for (int i = 0; i < *numAccounts; i++) {
+        fscanf(fp, "%99[^,\n],%99[^,\n],%99[^,\n],%99[^\n]\n", favorites[i].user, favorites[i].fav1, favorites[i].fav2, favorites[i].fav3);
+    }
+    // while ((fscanf(fp, "%99[^,],%99[^,],%99[^,],%99[^\n]\n", favorites[*numAccounts].username, accounts[*numAccounts].pw, &accounts[*numAccounts].accountNum, &accounts[*numAccounts].balance, &accounts[*numAccounts].numFavs)== 5) && 
+    // (*numAccounts < MAX_ACCOUNTS)) {
+    //     (*numAccounts)++;
+    //     (*accountNumber)++;
+
+    // }
+
+    fclose(fp);
 }
 
 void saveAccounts(accountDetails *accounts, int *numAccounts, DatabaseManager *db) {
@@ -218,9 +308,19 @@ void saveAccounts(accountDetails *accounts, int *numAccounts, DatabaseManager *d
         fprintf(fp, "%s,%s,%d,%f\n", account->username, account->pw, account->accountNum, account->balance);
         
     }
+    fclose(fp);
 }
 
-void createAccount(accountDetails *accounts, int *numAccounts, int *accountNumber, DatabaseManager *db) {
+void saveFavorites(accountDetails *accounts, int *numAccounts, DatabaseManager *favs, favoriteDetails *favorite) {
+    FILE *fp = fopen(favs->filename, "w");
+    for (int i = 0; i<*numAccounts; i++) {
+        accountDetails *account = &accounts[i];
+        fprintf(fp, "%s,", account->username);
+    }
+    fclose(fp);
+}
+
+void createAccount(accountDetails *accounts, int *numAccounts, int *accountNumber, DatabaseManager *db, DatabaseManager *favs) {
     accountDetails *lastAccount = &accounts[*numAccounts];
     char user[MAX_CHAR];
     char pw[MAX_CHAR];
@@ -271,6 +371,16 @@ void createAccount(accountDetails *accounts, int *numAccounts, int *accountNumbe
     printf("User: %d", lastAccount->accountNum);
     printf("User: %f", lastAccount->balance);
 
+
+    FILE *favsFile = fopen(favs->filename, "a"); // Open the file in append mode
+    if (favsFile == NULL) { // Check if file opening was successful
+        printf("Error opening favs file for writing!\n");
+        exit(1);
+    } else {
+        fprintf(favsFile, "%s,%s,%s,%s\n", lastAccount->username, "{}", "{}", "{}");
+    }
+    fclose(favsFile);
+
     FILE *file = fopen(db->filename, "a"); // Open the file in append mode
     if (file == NULL) { // Check if file opening was successful
         printf("Error opening file for writing!\n");
@@ -279,12 +389,12 @@ void createAccount(accountDetails *accounts, int *numAccounts, int *accountNumbe
         fprintf(file, "%s,%s,%d,%f\n", lastAccount->username, lastAccount->pw, lastAccount->accountNum, lastAccount->balance);
         printf("Submission Saved!\n\n");
     }
-
     fclose(file);
+
     printf("\nAccount created!!! Please write down your Username and Password somewhere safe and login now.\n\n");
 }
 
-accountDetails login(accountDetails *accounts, int *numAccounts) {
+accountDetails login(accountDetails *accounts, int *numAccounts, bool *contFirst, bool *contSecond) {
 
     // for (int i = 0; i < *numAccounts; i++) {
     //     printf("%d : User: %s, Pw: %s, num: %d, balance: %d", i, accounts[i].username, accounts[i].pw, accounts[i].accountNum, accounts[i].balance);
@@ -296,8 +406,10 @@ accountDetails login(accountDetails *accounts, int *numAccounts) {
 
 
     if (*numAccounts == 0) {
-        printf("No accounts detected; please select create account to get started \n");
+        printf("No accounts detected; please select create account to get started\n\n");
         cont = false;
+        *contSecond = false;
+        *contFirst = true;
     }
 
     while (cont) {
@@ -342,7 +454,7 @@ accountDetails login(accountDetails *accounts, int *numAccounts) {
 
 }
 
-void deposit(accountDetails *loggedInAccount, accountDetails *accounts) {
+float deposit(accountDetails *loggedInAccount, accountDetails *accounts, bool *changeHasBeenMade) {
     bool continueDepositing = true;
     printf("\033[1m"); // Bold text
     printf("\nDEPOSIT");
@@ -367,11 +479,16 @@ void deposit(accountDetails *loggedInAccount, accountDetails *accounts) {
 
             // printf("%.2f deposited. Have a good day\n"); //should do after save account
             continueDepositing = false;
+            *changeHasBeenMade = true;
+            return deposit;
         } 
     }
+    *changeHasBeenMade = false;
+
+    return 0;
 }
 
-void withdraw(accountDetails *loggedInAccount, accountDetails *accounts) {
+float withdraw(accountDetails *loggedInAccount, accountDetails *accounts, bool *changeHasBeenMade) {
     bool continueWithdrawing = true;
     printf("\033[1m"); // Bold text
     printf("\nWITHDRAW");
@@ -391,12 +508,190 @@ void withdraw(accountDetails *loggedInAccount, accountDetails *accounts) {
         } else if (withdraw == 0) {
             continueWithdrawing = false;
         } else {
-            printf("Depositing %.2f into %s's account with account number %d\n", withdraw, loggedInAccount->username, loggedInAccount->accountNum);
+            printf("Withdrawing %.2f from %s's account with account number %d\n", withdraw, loggedInAccount->username, loggedInAccount->accountNum);
 
             loggedInAccount->balance -= withdraw;
             accounts[index].balance -= withdraw;
 
             continueWithdrawing = false;
+            *changeHasBeenMade = true;
+            return withdraw;
         } 
     }
+    *changeHasBeenMade = false;
+    return 0;
+}
+
+void transfer(accountDetails *loggedInAccount, accountDetails *accounts, favoriteDetails *favorite, int *numAccounts) {
+    printf("\033[2J"); // Clear entire screen
+    printf("\033[0m"); //reset color
+    printf("\033[0;37m"); //grey
+    printf("User\t\t\t\t  Account Number\t\t\t\tBalance\n");
+    printf("\033[0m"); //reset color
+    printf("---------------------------------------------------------------------------------------\n");
+    printf("\033[0;34m"); //blue text
+    printf("\033[1m"); // Bold text
+    printf("%s", loggedInAccount->username);
+    printf("\t\t\t\t\t%d", loggedInAccount->accountNum);
+    printf("\t\t\t\t\t%.2f\n", loggedInAccount->balance);
+    printf("\033[0m"); //reset text
+    printf("\033[1m"); // Bold text
+    printf("\n\t\t\t\t  TRANSFER MENU\n\n");
+    printf("\033[0m"); //reset text
+
+    int transferChoice;
+    bool continueTransfer = true;
+
+    while (continueTransfer) {
+        printf("\t\b\b\b1. Request\n\t\b\b\b2. Send\n\t\b\b\b3. View Requests\n\t\b\b\b4. Edit Favorites\n\t\b\b\b5. Back\nChoice: ");
+        scanf("%d", &transferChoice);
+
+        switch(transferChoice) {
+            case 1: 
+                // request(loggedInAccount, accounts);
+                break;
+            case 2:
+                // send()
+                break;
+            case 3:
+                // viewRequest()
+                break;
+            case 4:
+                editFavorites(accounts, favorite, numAccounts);
+                break;
+            case 5: 
+                // back()
+                break;
+            default:
+                printf("Invalid input- please input either a 1, 2, 3, or 4");
+                break;
+        }
+        // continueTransfer = false;
+    }
+}
+
+// void request(accountDetails *loggedInAccount, accountDetails *accounts, favoriteDetails *favorites) {
+//     int requestChoice;
+//     printf("\t\b\b\b1. Search by Favorites\n\t\b\b\b2. Search by Username\n\t\b\b\b3. Back\nChoice: ");
+//     scanf("%d", &requestChoice);
+
+//     switch(requestChoice) {
+//         case 1:
+//             // search favs
+//         case 2:
+//             // search user
+//         case 3:
+//             // back
+//         default:
+//             printf("Invalid input- please input either a 1, 2, or 3");
+//     }
+
+// }
+
+
+void editFavorites(accountDetails *accounts, favoriteDetails *favorite, int *numAccounts) {
+    bool continueEditing = true;
+    // 0x16fdf01b7
+    // 0x16fdf0240000064
+    while(continueEditing) {
+        int favoriteChoice;
+        int numberOfFavorites = 0;
+        bool hasFavorite = false;
+        // char 
+
+        printf("\nYour favorites: \n");
+        if (strcmp(favorite->fav1, "{}")) {
+            numberOfFavorites++;
+            printf("\t\b\b\b%s\n", favorite->fav1);
+            hasFavorite = true;
+        }
+        if (strcmp(favorite->fav2, "{}")) {
+            numberOfFavorites++;
+            printf("\t\b\b\b%s\n", favorite->fav2);
+            hasFavorite = true;
+        }
+        if (strcmp(favorite->fav3, "{}")) {
+            numberOfFavorites++;
+            printf("\t\b\b\b%s\n", favorite->fav3);
+            hasFavorite = true;
+        }
+        if (!hasFavorite) {
+            printf("\t\b\b\bYou have no favorites :(\n");
+        }
+
+
+        printf("You have %d favorites out of 3.\n\t\b\b\b1. Back\n\t\b\b\b2. Edit Existing Favorite\n\t\b\b\b", numberOfFavorites);
+        if (numberOfFavorites < 3) {
+            printf("3. Add Favorite");
+        }
+
+        printf("\nChoice: ");
+        scanf("%d", &favoriteChoice);
+
+        switch(favoriteChoice) {
+            case 1:
+                continueEditing = false;
+                break;
+            case 2:
+                // edit
+                break;
+            case 3:
+                if (numberOfFavorites < 3) {
+                    addFavorite(favorite, numberOfFavorites, accounts, numAccounts);
+                    // continueEditing = false;
+
+                } else {
+                    printf("\nYou already have the maximum amount of favorites, please select edit favorites instead\n");
+                }
+                break;
+            default:
+                printf("Invalid input- please input either a 1, 2, or 3 (only if you have less than 3 favorites)");
+                break;
+        }
+    }
+    
+}
+
+void addFavorite(favoriteDetails *favorite, int numberOfFavorites, accountDetails *accounts, int *numAccounts) {
+    bool goodUser = false;
+    char *user;
+
+    while (!goodUser) {
+        printf("\nEnter a valid Username to add as favorite: ");
+        scanf("%s", user);
+
+        if (userExists(user, accounts, numAccounts)) {
+            goodUser = true;
+        } else {
+            printf("\nCould not find a user with that name. Please try again.\n");
+            user = "\0"; //so that user can be global 
+        }
+    }
+
+    
+    if (numberOfFavorites == 0) {
+        strcpy(favorite->fav1, user);
+    } else if (numberOfFavorites == 1) {
+        strcpy(favorite->fav2, user);
+    } else if (numberOfFavorites == 2) {
+        strcpy(favorite->fav3, user);
+    }
+
+    favorite = NULL;
+    accounts = NULL;
+    numAccounts = NULL;
+}
+
+int userExists(char *user, accountDetails *accounts, int *numAccounts) {
+
+    for (int i = 0; i < *numAccounts; i++) {
+        accountDetails *account = &accounts[i];
+        if (!strcmp(account->username, user)) {
+            return 1;
+        }
+    }
+    user = NULL;
+    accounts = NULL;
+    numAccounts = NULL;
+    return 0;
 }
