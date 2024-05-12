@@ -1,7 +1,5 @@
 // things to fix:
-// accountNumber is not updating; we initilaize it as 1 and it stays as 1 the entire time
-// thats fixed but new issue realized; it loads the accounts everytime we make a new one, causing accountNum and numAccounts to
-// always increase for each account that we have, even if we have already loaded them in; should grab the value from csv instead
+// at the top of login add a cancel button, same for register; otherwise you can be forever stuck if you choose the wrong option; also return value problem
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,7 +27,7 @@ typedef struct {
     char username[MAX_CHAR];
     char pw[MAX_CHAR];
     int accountNum;
-    int balance;
+    float balance;
 } accountDetails;
 
 char* toLowerCase(char *str);
@@ -43,7 +41,7 @@ void saveAccounts(accountDetails *accounts, int *numAccounts, DatabaseManager *d
 int loadAccounts(accountDetails *accounts, int *numAccounts, int *accountNumber, DatabaseManager *db);
 
 void createAccount(accountDetails *accounts, int *numAccounts, int *accountNumber, DatabaseManager *db);
-void login(accountDetails *accounts, int *numAccounts);
+accountDetails login(accountDetails *accounts, int *numAccounts);
 
 
 int main() {
@@ -51,6 +49,7 @@ int main() {
     strcpy(db.filename, "userData.csv");
 
     accountDetails accounts[MAX_ACCOUNTS];
+    accountDetails loggedInAccount;
     int numAccounts = 0;
 
     
@@ -66,30 +65,87 @@ int main() {
 
     printf("--------------------------------------------------------------------------\n");
     printf("Welcome to BB (Boris' Bank)\n");
-    bool cont = true;
+    bool contFirst = true;
+    bool contSecond = true;
+    loadAccounts(accounts, &numAccounts, &accountNumber, &db);
 
-    while (cont) {
-        int option;
+    while (contFirst) {
+        int option1;
+
+        // loadAccounts here; so it's just once for one
+
         printf("1. Create Account\n2. Login\nChoice: ");
-        scanf("%d", &option);
+        scanf("%d", &option1);
 
-        switch (option) {
+        switch (option1) {
             case 1:
-                loadAccounts(accounts, &numAccounts, &accountNumber, &db);
                 createAccount(accounts, &numAccounts, &accountNumber, &db);
-                login(accounts, &numAccounts);
-                cont = false;
+                loggedInAccount = login(accounts, &numAccounts);
+                contFirst = false;
                 break;
 
             case 2:
-                loadAccounts(accounts, &numAccounts, &accountNumber, &db);
-                login(accounts, &numAccounts);
+                // loadAccounts(accounts, &numAccounts, &accountNumber, &db);
+                loggedInAccount = login(accounts, &numAccounts);
+                contFirst = false;
                 break;
 
             default:
                 printf("Invalid option- Please input either a 1 or 2\n\n");
                 break;
         }
+    }
+    // inside account
+    // printf("\033[2J"); // Clear entire screen
+
+    while (contSecond) {
+        int option2;
+        char errorMessage[MAX_CHAR];
+
+        printf("\033[2J"); // Clear entire screen
+        printf("\033[0m"); //reset color
+        printf("------------------------------------------------------------------------------------\n");
+        printf("\033[0;34m"); //blue text
+        printf("\033[1m"); // Bold text
+        printf("%s", loggedInAccount.username);
+        printf("\t\t\t\t\t%d", loggedInAccount.accountNum);
+        printf("\t\t\t\t\t%.2f\n\n", loggedInAccount.balance);
+        printf("\033[0m"); //reset text
+        printf("%s", errorMessage);
+        printf("Welcome %s!\n", loggedInAccount.username);
+        printf("\t\b\b\b1. Transfer menu\n\t\b\b\b2. Deposit\n\t\b\b\b3. Withdraw\n\t\b\b\b4. View + Edit Account Details\n\t\b\b\b5. Log Out\nChoice: ");
+
+        scanf("%d", &option2);
+        errorMessage[0] = '\0';
+
+        switch(option2) {
+            case 1:
+                // transfer();
+                contSecond = false;
+                break;
+            case 2: 
+                // deposit();
+                contSecond = false;
+                break;
+            case 3:
+                // withdraw();
+                contSecond = false;
+                break;
+            case 4:
+                // details();
+                contSecond = false;
+                break;
+            case 5:
+                // logout();
+                contSecond = false;
+                break;
+            default:
+                strcpy(errorMessage, "Invalid input, please input one integer coressponding to the options listed :)\n");
+                contSecond = true;
+                break;
+        }
+
+        // contSecond = false;
     }
 
     return 0;
@@ -119,7 +175,7 @@ int initialize(DatabaseManager *db) {
 }
 
 int loadAccounts(accountDetails *accounts, int *numAccounts, int *accountNumber, DatabaseManager *db) {
-    printf("\nBefore loadAccounts: %d", *numAccounts);
+    printf("\nBefore loadAccounts: %d\n", *numAccounts);
     FILE *fp = fopen(db->filename, "r");
     if (fp == NULL) {
         printf("\nError opening file for reading :(");
@@ -128,7 +184,7 @@ int loadAccounts(accountDetails *accounts, int *numAccounts, int *accountNumber,
     rewind(fp);
 
     printf("Loading accounts...\n");
-    while ((fscanf(fp, "%99[^,],%99[^,],%d,%d\n", accounts[*numAccounts].username, accounts[*numAccounts].pw, &accounts[*numAccounts].accountNum, &accounts[*numAccounts].balance)== 4) && 
+    while ((fscanf(fp, "%99[^,],%99[^,],%d,%f\n", accounts[*numAccounts].username, accounts[*numAccounts].pw, &accounts[*numAccounts].accountNum, &accounts[*numAccounts].balance)== 4) && 
     (*numAccounts < MAX_ACCOUNTS)) {
         (*numAccounts)++;
         (*accountNumber)++;
@@ -136,7 +192,7 @@ int loadAccounts(accountDetails *accounts, int *numAccounts, int *accountNumber,
     }
 
     fclose(fp);
-    printf("\nafter loadAccounts: %d", *numAccounts);
+    printf("\nafter loadAccounts: %d\n", *numAccounts);
     return *numAccounts;
 }
 
@@ -144,11 +200,10 @@ void saveAccounts(accountDetails *accounts, int *numAccounts, DatabaseManager *d
     FILE *fp = fopen(db->filename, "w");
     for (int i = 0; i<*numAccounts; i++) {
         accountDetails *account = &accounts[i];
-        fprintf(fp, "%s,%s,%d,%d\n", account->username, account->pw, account->accountNum, account->balance);
+        fprintf(fp, "%s,%s,%d,%f\n", account->username, account->pw, account->accountNum, account->balance);
         
     }
 }
-
 
 void createAccount(accountDetails *accounts, int *numAccounts, int *accountNumber, DatabaseManager *db) {
     accountDetails *lastAccount = &accounts[*numAccounts];
@@ -187,7 +242,7 @@ void createAccount(accountDetails *accounts, int *numAccounts, int *accountNumbe
     (*numAccounts)++;
     printf("\nNum Accounts: %d\n", *numAccounts);
 
-    int balance = 0;
+    float balance = 0;
     (*accountNumber)++;
     printf("Accounts nums: %d\n", *accountNumber);
 
@@ -199,14 +254,14 @@ void createAccount(accountDetails *accounts, int *numAccounts, int *accountNumbe
     printf("User: %s", lastAccount->username);
     printf("User: %s", lastAccount->pw);
     printf("User: %d", lastAccount->accountNum);
-    printf("User: %d", lastAccount->balance);
+    printf("User: %f", lastAccount->balance);
 
     FILE *file = fopen(db->filename, "a"); // Open the file in append mode
     if (file == NULL) { // Check if file opening was successful
         printf("Error opening file for writing!\n");
         exit(1);
     } else {
-        fprintf(file, "%s,%s,%d,%d\n", lastAccount->username, lastAccount->pw, lastAccount->accountNum, lastAccount->balance);
+        fprintf(file, "%s,%s,%d,%f\n", lastAccount->username, lastAccount->pw, lastAccount->accountNum, lastAccount->balance);
         printf("Submission Saved!\n\n");
     }
 
@@ -214,11 +269,11 @@ void createAccount(accountDetails *accounts, int *numAccounts, int *accountNumbe
     printf("\nAccount created!!! Please write down your Username and Password somewhere safe and login now.\n\n");
 }
 
-void login(accountDetails *accounts, int *numAccounts) {
+accountDetails login(accountDetails *accounts, int *numAccounts) {
 
-    for (int i = 0; i < *numAccounts; i++) {
-        printf("%d : User: %s, Pw: %s, num: %d, balance: %d", i, accounts[i].username, accounts[i].pw, accounts[i].accountNum, accounts[i].balance);
-    }
+    // for (int i = 0; i < *numAccounts; i++) {
+    //     printf("%d : User: %s, Pw: %s, num: %d, balance: %d", i, accounts[i].username, accounts[i].pw, accounts[i].accountNum, accounts[i].balance);
+    // }
 
     bool cont = true;
     char user[MAX_CHAR];
@@ -246,7 +301,7 @@ void login(accountDetails *accounts, int *numAccounts) {
             strcpy(dummyUser, account->username);
             strcpy(dummyPw, account->pw);
 
-            printf("\ndummyUser: %s dummyPw: %s i is: %d\n", dummyUser, dummyPw, i);
+            // printf("\ndummyUser: %s dummyPw: %s i is: %d\n", dummyUser, dummyPw, i);
 
             // if statement if last element AND username doesnt match
             if (i == (*numAccounts - 1) && strcmp(toLowerCase(user), dummyUser)) { //checks if the function is on the last element of the listed accounts and if the username is incorrect; tells the program that the search is unsuccesful
@@ -256,8 +311,9 @@ void login(accountDetails *accounts, int *numAccounts) {
                 if (!strcmp(toLowerCase(pw), dummyPw)) {
                     printf("\nCorrect Username and Password\n");
                     printf("Logging in...\n");
-                    cont = false;
-                    break;
+                    return *account;
+                    // cont = false;
+                    // break;
                 } else {
                     printf("\nIncorrect Password\n");
                     printf("Please try again\n");
