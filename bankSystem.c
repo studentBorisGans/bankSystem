@@ -1,5 +1,9 @@
 // things to fix:
 // at the top of login add a cancel button, same for register; otherwise you can be forever stuck if you choose the wrong option; also return value problem
+// if a user exits the program without using the logout button, their changes do not get saved to the file. maybe add like a "feature" so they input their password to execute their changes before they leave?
+
+// thing I can add:
+// terminal width thing; at the start ask user for width otherwise it's assumed to be the normal one
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,6 +35,7 @@ typedef struct {
 } accountDetails;
 
 char* toLowerCase(char *str);
+void clearBuffer();
 void readNumAccounts(int *numAccounts);
 void writeNumAccounts(int numAccounts);
 void readAccountNumber(int *accountNumber);
@@ -42,6 +47,9 @@ int loadAccounts(accountDetails *accounts, int *numAccounts, int *accountNumber,
 
 void createAccount(accountDetails *accounts, int *numAccounts, int *accountNumber, DatabaseManager *db);
 accountDetails login(accountDetails *accounts, int *numAccounts);
+
+void deposit(accountDetails *loggedInAccount, accountDetails *accounts);
+void withdraw(accountDetails *loggedInAccount, accountDetails *accounts);
 
 
 int main() {
@@ -124,16 +132,13 @@ int main() {
                 contSecond = false;
                 break;
             case 2: 
-                // deposit();
-                contSecond = false;
+                deposit(&loggedInAccount, accounts);
                 break;
             case 3:
-                // withdraw();
-                contSecond = false;
+                withdraw(&loggedInAccount, accounts);
                 break;
             case 4:
                 // details();
-                contSecond = false;
                 break;
             case 5:
                 // logout();
@@ -145,8 +150,11 @@ int main() {
                 break;
         }
 
+
         // contSecond = false;
     }
+    saveAccounts(accounts, &numAccounts, &db);    
+
 
     return 0;
 
@@ -161,6 +169,13 @@ char* toLowerCase(char *str) { // 'char*' returns a pointer to a character which
     }
     lowerStr[length] = '\0'; // Null-terminate the string . signifies end of the string
     return lowerStr;
+}
+
+void clearBuffer() {
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF) {
+        // Consume characters until newline or EOF
+    }
 }
 
 int initialize(DatabaseManager *db) {
@@ -325,4 +340,63 @@ accountDetails login(accountDetails *accounts, int *numAccounts) {
     }
     
 
+}
+
+void deposit(accountDetails *loggedInAccount, accountDetails *accounts) {
+    bool continueDepositing = true;
+    printf("\033[1m"); // Bold text
+    printf("\nDEPOSIT");
+    printf("\033[0m"); //reset text
+
+    while (continueDepositing) {
+        float deposit;
+        int index = loggedInAccount->accountNum - 1;
+
+        printf("\nHow much would you like to deposit? Input any float. If you wish to go back to the previous menu, input a 0\n");
+        printf("Choice: ");
+        scanf("%f", &deposit);
+        if (deposit < 0) {
+            printf("\nYou can not input a number less than 0. If you wish to withdraw, please go to the previous menu and select Withdraw.");
+        } else if (deposit == 0) {
+            continueDepositing = false;
+        } else {
+            printf("Depositing %.2f into %s's account with account number %d\n", deposit, loggedInAccount->username, loggedInAccount->accountNum);
+
+            loggedInAccount->balance += deposit;
+            accounts[index].balance += deposit;
+
+            // printf("%.2f deposited. Have a good day\n"); //should do after save account
+            continueDepositing = false;
+        } 
+    }
+}
+
+void withdraw(accountDetails *loggedInAccount, accountDetails *accounts) {
+    bool continueWithdrawing = true;
+    printf("\033[1m"); // Bold text
+    printf("\nWITHDRAW");
+    printf("\033[0m"); //reset text
+
+    while (continueWithdrawing) {
+        float withdraw;
+        int index = loggedInAccount->accountNum - 1;
+
+        printf("\nHow much would you like to withdraw? Input any float. If you wish to go back to the previous menu, input a 0\n");
+        printf("Choice: ");
+        scanf("%f", &withdraw);
+        if (withdraw < 0) {
+            printf("\nYou can not input a number less than 0. If you wish to deposit, please go to the previous menu and select Deposit.");
+        } else if (withdraw > loggedInAccount->balance) {
+            printf("\nYou do not have enough money for this transaction. Remeber that your current account balance is %.2f and you are not authorized to withdraw more money than this.", loggedInAccount->balance);
+        } else if (withdraw == 0) {
+            continueWithdrawing = false;
+        } else {
+            printf("Depositing %.2f into %s's account with account number %d\n", withdraw, loggedInAccount->username, loggedInAccount->accountNum);
+
+            loggedInAccount->balance -= withdraw;
+            accounts[index].balance -= withdraw;
+
+            continueWithdrawing = false;
+        } 
+    }
 }
