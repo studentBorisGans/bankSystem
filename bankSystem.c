@@ -1,6 +1,7 @@
 // things to fix:
 // at the top of login add a cancel button, same for register; otherwise you can be forever stuck if you choose the wrong option; also return value problem
 // change it so that whenever they go back to the main screen, the welcome thing and everything reappears
+// !!!!: make a global array of representing the structures; for usernames etc. so you compare that in edit entries; 
 
 // thing I can add:
 // terminal width thing; at the start ask user for width otherwise it's assumed to be the normal one
@@ -10,6 +11,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <ctype.h> //for tolower function
+#include <time.h> // for encryption
 
 // #include <sqlite3.h>
 
@@ -46,18 +48,24 @@ char* toLowerCase(char *str);
 void clearBuffer();
 
 int initialize(DatabaseManager *db, DatabaseManager *favs);
-void saveAccounts(accountDetails *accounts, int *numAccounts, DatabaseManager *db);
+void saveAccounts(accountDetails *accounts, int *numAccounts, DatabaseManager *db, int shift);
 // void saveFavorites(accountDetails *accounts, int *numAccounts, DatabaseManager *db);
-int loadAccounts(accountDetails *accounts, int *numAccounts, int *accountNumber, DatabaseManager *db);
+int loadAccounts(accountDetails *accounts, int *numAccounts, int *accountNumber, DatabaseManager *db, int shift);
 void loadFavorites(favoriteDetails *favorites, DatabaseManager *fav, int *numAccounts);
+// , char *users[MAX_ACCOUNTS], size_t usersSize)
 
 
-void createAccount(accountDetails *accounts, int *numAccounts, int *accountNumber, DatabaseManager *db, DatabaseManager *favs);
+void createAccount(accountDetails *accounts, int *numAccounts, int *accountNumber, DatabaseManager *db, DatabaseManager *favs, int shift);
 accountDetails login(accountDetails *accounts, int *numAccounts, bool *contFirst, bool *contSecond);
 
 float deposit(accountDetails *loggedInAccount, accountDetails *accounts, bool *changeHasBeenMade);
 float withdraw(accountDetails *loggedInAccount, accountDetails *accounts, bool *changeHasBeenMade);
-void transfer(accountDetails *loggedInAccount, accountDetails *accounts[MAX_ACCOUNTS], favoriteDetails **favorite, int *numAcconts);
+void transfer(accountDetails *loggedInAccount, accountDetails *accounts, favoriteDetails *favorite, int *numAcconts);
+
+void encryptString(char *str, int shift);
+void decryptString(char *str, int shift);
+int encryptInteger(int num, int shift);
+int decryptInteger(int num, int shift);
 
 // void request(accountDetails *loggedInAccount, accountDetails **accounts, favoriteDetails **favorites);
 void editFavorites(accountDetails **accounts, favoriteDetails *favorite, int *numAccounts);
@@ -65,6 +73,7 @@ void editFavorites(accountDetails **accounts, favoriteDetails *favorite, int *nu
 void addFavorite(favoriteDetails *favorite, int numberOfFavorites, accountDetails **accounts, int *numAccounts);
 
 int userExists(char *user, accountDetails *accounts, int *numAccounts);
+
 
 int main() {
     printf("\033[2J"); // Clear entire screen
@@ -81,7 +90,19 @@ int main() {
 
     favoriteDetails favorites[MAX_ACCOUNTS];
 
+    char *users  = NULL;
+    size_t usersSize = 0;
+
     int numAccounts = 0;
+
+    time_t rawtime;
+    struct tm * timeinfo;
+    int hour;
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+    hour = timeinfo->tm_hour;
+    // int shift = hour % 26;
+    int shift = 10;
 
     printf("---------------------------------------------------------------------------------------\n");
     printf("\033[1m"); // Bold text
@@ -93,11 +114,12 @@ int main() {
     if (initialize(&db, &favs)) {
         printf("It looks like this is the first time you're using my program, please select Create Account to get started\n\n");
     } else {
-        loadAccounts(accounts, &numAccounts, &accountNumber, &db);
-        loadFavorites(favorites, &favs, &numAccounts);
+        loadAccounts(accounts, &numAccounts, &accountNumber, &db, shift);
+        loadFavorites(favorites, &favs, &numAccounts); 
 
     }
 
+  
 
     bool contProgram = true;
     bool contFirst = true;
@@ -111,11 +133,11 @@ int main() {
 
             printf("1. Create Account\n2. Login\n3. Terminate Session\nChoice: ");
             scanf("%d", &option1);
-
+    
             switch (option1) {
                 case 1:
                     contFirst = false;
-                    createAccount(accounts, &numAccounts, &accountNumber, &db, &favs);
+                    createAccount(accounts, &numAccounts, &accountNumber, &db, &favs, shift);
                     loggedInAccount = login(accounts, &numAccounts, &contFirst, &contSecond);
                     break;
 
@@ -177,23 +199,30 @@ int main() {
             printf("\t\b\b\b\033[38;2;255;165;0m1. Transfer menu\n\033[0m\t\b\b\b\033[0;32m2. Deposit\n\033[0m\t\b\b\b\033[0;31m3. Withdraw\n\033[0m\t\b\b\b4. View + Edit Account Details\n\t\b\b\b5. Log Out\nChoice: ");
 
             scanf("%d", &option2);
+            clearBuffer();
+
             errorMessage[0] = '\0';
 
-            accountDetails *passedAccounts = accounts;
+            // accountDetails *passedAccounts = accounts;
 
             switch(option2) {
                 case 1:
                     if (numAccounts == 1) {
                         strcpy(errorMessage, "There is only 1 account, therefore you cannot transfer money between accounts.\n");
                     } else {
-                        transfer(&loggedInAccount, &passedAccounts, &favorite, &numAccounts);
+                        char str[] = "message";
+                        int i = 10;
+                        encryptString(str, i);
+                        printf("Encrypted string: %s\n", str);
+                        // transfer(&loggedInAccount, accounts, favorite, &numAccounts);
+                        decryptString(str, i);
+                        printf("Decrypted string: %s\n", str);
                         contSecond = false;
                     }
-                    
                     break;
                 case 2: 
                     change = deposit(&loggedInAccount, accounts, &changeHasBeenMade);
-                    saveAccounts(accounts, &numAccounts, &db);    
+                    saveAccounts(accounts, &numAccounts, &db, shift);    
 
                     green = true;
                     break;
@@ -203,7 +232,7 @@ int main() {
                         // printf("Please deposit some money before you withdraw\n");
                     } else {
                         change = withdraw(&loggedInAccount, accounts, &changeHasBeenMade);
-                        saveAccounts(accounts, &numAccounts, &db);    
+                        saveAccounts(accounts, &numAccounts, &db, shift);    
                         green = false;
                     }
                     
@@ -260,8 +289,8 @@ int initialize(DatabaseManager *db, DatabaseManager *favs) {
         return 0;
     }
 }
-
-int loadAccounts(accountDetails *accounts, int *numAccounts, int *accountNumber, DatabaseManager *db) {
+// , char *users, size_t usersSize
+int loadAccounts(accountDetails *accounts, int *numAccounts, int *accountNumber, DatabaseManager *db, int shift) {
     FILE *fp = fopen(db->filename, "r");
     if (fp == NULL) {
         printf("\nError opening file for reading :(");
@@ -269,11 +298,45 @@ int loadAccounts(accountDetails *accounts, int *numAccounts, int *accountNumber,
     }
     rewind(fp);
 
+
     printf("\t\t\t    Loading accounts...\n");
     while ((fscanf(fp, "%99[^,],%99[^,],%d,%f\n", accounts[*numAccounts].username, accounts[*numAccounts].pw, &accounts[*numAccounts].accountNum, &accounts[*numAccounts].balance)== 4) && 
     (*numAccounts < MAX_ACCOUNTS)) {
         (*numAccounts)++;
         (*accountNumber)++;
+
+        // char encryptedUser = ;
+        // encryptedUser = malloc(strlen(account->username) + 1);
+        // strcpy(encryptedUser, accounts[*numAccounts].username);
+        size_t length = strlen(accounts[*numAccounts].username);
+        char *encryptedUser = malloc(length + 1);
+        if (encryptedUser == NULL) {
+            fprintf(stderr, "Memory allocation failed\n");
+            // Handle the error or exit the program
+            // For example, you might return from the function with an error status
+        }
+
+        strcpy(encryptedUser, accounts[*numAccounts].username);
+
+        printf("Encrypted string: %s\n", encryptedUser);
+        decryptString(encryptedUser, shift);
+        printf("Decrypted string: %s\n", encryptedUser);
+        // strcpy(encryptedUser, accounts[*numAccounts].username);
+        // strcpy(accounts[*numAccounts].username, encryptedUser);
+
+
+        // char *encryptedPw;
+        // encryptedPw = malloc(strlen(account->pw) + 1);
+        // strcpy(encryptedPw, account->pw);
+        // encryptString(encryptedPw, shift);
+
+        // int encryptedNum = encryptInteger(account->accountNum, shift);
+
+        // usersSize++; 
+        // char *temp = realloc(users, usersSize * sizeof(int));
+        // users = temp;
+        // users[usersSize-1] = accounts[*numAccounts].username;
+
 
     }
 
@@ -303,11 +366,24 @@ void loadFavorites(favoriteDetails *favorites, DatabaseManager *fav, int *numAcc
     fclose(fp);
 }
 
-void saveAccounts(accountDetails *accounts, int *numAccounts, DatabaseManager *db) {
+void saveAccounts(accountDetails *accounts, int *numAccounts, DatabaseManager *db, int shift) {
     FILE *fp = fopen(db->filename, "w");
     for (int i = 0; i<*numAccounts; i++) {
         accountDetails *account = &accounts[i];
-        fprintf(fp, "%s,%s,%d,%f\n", account->username, account->pw, account->accountNum, account->balance);
+
+        char *encryptedUser;
+        encryptedUser = malloc(strlen(account->username) + 1);
+        strcpy(encryptedUser, account->username);
+        encryptString(encryptedUser, shift);
+
+        char *encryptedPw;
+        encryptedPw = malloc(strlen(account->pw) + 1);
+        strcpy(encryptedPw, account->pw);
+        encryptString(encryptedPw, shift);
+
+        int encryptedNum = encryptInteger(account->accountNum, shift);
+
+        fprintf(fp, "%s,%s,%d,%f\n", encryptedUser, encryptedPw, encryptedNum, account->balance);
         
     }
     fclose(fp);
@@ -322,7 +398,7 @@ void saveFavorites(accountDetails *accounts, int *numAccounts, DatabaseManager *
     fclose(fp);
 }
 
-void createAccount(accountDetails *accounts, int *numAccounts, int *accountNumber, DatabaseManager *db, DatabaseManager *favs) {
+void createAccount(accountDetails *accounts, int *numAccounts, int *accountNumber, DatabaseManager *db, DatabaseManager *favs, int shift) {
     accountDetails *lastAccount = &accounts[*numAccounts];
     char user[MAX_CHAR];
     char pw[MAX_CHAR];
@@ -373,6 +449,18 @@ void createAccount(accountDetails *accounts, int *numAccounts, int *accountNumbe
     printf("User: %d", lastAccount->accountNum);
     printf("User: %f", lastAccount->balance);
 
+    char *encryptedUser;
+    encryptedUser = malloc(strlen(lastAccount->username) + 1);
+    strcpy(encryptedUser, lastAccount->username);
+    encryptString(encryptedUser, shift);
+
+    char *encryptedPw;
+    encryptedPw = malloc(strlen(lastAccount->pw) + 1);
+    strcpy(encryptedPw, lastAccount->pw);
+    encryptString(encryptedPw, shift);
+
+    int encryptedNum = encryptInteger(lastAccount->accountNum, shift);
+
 
     FILE *favsFile = fopen(favs->filename, "a"); // Open the file in append mode
     if (favsFile == NULL) { // Check if file opening was successful
@@ -388,7 +476,7 @@ void createAccount(accountDetails *accounts, int *numAccounts, int *accountNumbe
         printf("Error opening file for writing!\n");
         exit(1);
     } else {
-        fprintf(file, "%s,%s,%d,%f\n", lastAccount->username, lastAccount->pw, lastAccount->accountNum, lastAccount->balance);
+        fprintf(file, "%s,%s,%d,%f\n", encryptedUser, encryptedPw, encryptedNum, lastAccount->balance);
         printf("Submission Saved!\n\n");
     }
     fclose(file);
@@ -524,20 +612,57 @@ float withdraw(accountDetails *loggedInAccount, accountDetails *accounts, bool *
     return 0;
 }
 
-void transfer(accountDetails *loggedInAccount, accountDetails *accounts[MAX_ACCOUNTS], favoriteDetails **favorite, int *numAccounts) {
-    printf("\033[2J"); // Clear entire screen
+
+void encryptString(char *str, int shift) {
+    while (*str) {
+        if(*str >= 'a' && *str <= 'z') {
+            *str = ((*str- 'a') + shift) % 26 + 'a';
+        }
+        str++;
+    }
+}
+
+void decryptString(char *str, int shift) {
+    while(*str) {
+        if (*str >= 'a' && *str <= 'z') {
+            *str = ((*str - 'a') - shift + 26) % 26 + 'a';
+        }
+        str++;
+    }
+}
+
+int encryptInteger(int num, int shift) {
+    return (num+shift) %10;
+}
+
+int decryptInteger(int num, int shift) {
+    return (num-shift + 10) % 10;
+}
+
+
+
+
+
+
+
+
+
+
+
+void transfer(accountDetails *loggedInAccount, accountDetails *accounts, favoriteDetails *favorite, int *numAccounts) {
+    printf("\033[2J"); //Clear entire screen
     printf("\033[0m"); //reset color
     printf("\033[0;37m"); //grey
     printf("User\t\t\t\t  Account Number\t\t\t\tBalance\n");
     printf("\033[0m"); //reset color
     printf("---------------------------------------------------------------------------------------\n");
     printf("\033[0;34m"); //blue text
-    printf("\033[1m"); // Bold text
+    printf("\033[1m"); //Bold text
     printf("%s", loggedInAccount->username);
     printf("\t\t\t\t\t%d", loggedInAccount->accountNum);
     printf("\t\t\t\t\t%.2f\n", loggedInAccount->balance);
     printf("\033[0m"); //reset text
-    printf("\033[1m"); // Bold text
+    printf("\033[1m"); //Bold text
     printf("\n\t\t\t\t  TRANSFER MENU\n\n");
     printf("\033[0m"); //reset text
 
@@ -559,7 +684,7 @@ void transfer(accountDetails *loggedInAccount, accountDetails *accounts[MAX_ACCO
                 // viewRequest()
                 break;
             case 4:
-                editFavorites(accounts, *favorite, numAccounts);
+                editFavorites(&accounts, favorite, numAccounts);
                 break;
             case 5: 
                 // back()
@@ -668,7 +793,7 @@ void addFavorite(favoriteDetails *favorite, int numberOfFavorites, accountDetail
         printf("\nEnter a valid Username to add as favorite: ");
         scanf("%s", user);
 
-        if (userExists(user, *accounts, numAccounts)) {
+        if (userExists(user, &accounts, numAccounts)) {
             goodUser = true;
         } else {
             printf("\nCould not find a user with that name. Please try again.\n");
@@ -693,8 +818,8 @@ void addFavorite(favoriteDetails *favorite, int numberOfFavorites, accountDetail
 int userExists(char *user, accountDetails *accounts, int *numAccounts) {
 
     for (int i = 0; i < *numAccounts; i++) {
-        accountDetails account = accounts[i];
-        if (!strcmp(account.username, user)) {
+        // accountDetails account = *accounts[i];
+        if (!strcmp(&accounts[i].username, user)) {
             return 1;
         }
     }
