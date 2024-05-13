@@ -57,12 +57,12 @@ accountDetails login(accountDetails *accounts, int *numAccounts, bool *contFirst
 
 float deposit(accountDetails *loggedInAccount, accountDetails *accounts, bool *changeHasBeenMade);
 float withdraw(accountDetails *loggedInAccount, accountDetails *accounts, bool *changeHasBeenMade);
-void transfer(accountDetails *loggedInAccount, accountDetails *accounts, favoriteDetails *favorite, int *numAcconts);
+void transfer(accountDetails *loggedInAccount, accountDetails *accounts[MAX_ACCOUNTS], favoriteDetails **favorite, int *numAcconts);
 
-void request(accountDetails *loggedInAccount, accountDetails *accounts, favoriteDetails *favorites);
-void editFavorites(accountDetails *accounts, favoriteDetails *favorite, int *numAccounts);
+// void request(accountDetails *loggedInAccount, accountDetails **accounts, favoriteDetails **favorites);
+void editFavorites(accountDetails **accounts, favoriteDetails *favorite, int *numAccounts);
 
-void addFavorite(favoriteDetails *favorite, int numberOfFavorites, accountDetails *accounts, int *numAccounts);
+void addFavorite(favoriteDetails *favorite, int numberOfFavorites, accountDetails **accounts, int *numAccounts);
 
 int userExists(char *user, accountDetails *accounts, int *numAccounts);
 
@@ -179,12 +179,14 @@ int main() {
             scanf("%d", &option2);
             errorMessage[0] = '\0';
 
+            accountDetails *passedAccounts = accounts;
+
             switch(option2) {
                 case 1:
                     if (numAccounts == 1) {
                         strcpy(errorMessage, "There is only 1 account, therefore you cannot transfer money between accounts.\n");
                     } else {
-                        transfer(&loggedInAccount, accounts, favorite, &numAccounts);
+                        transfer(&loggedInAccount, &passedAccounts, &favorite, &numAccounts);
                         contSecond = false;
                     }
                     
@@ -522,7 +524,7 @@ float withdraw(accountDetails *loggedInAccount, accountDetails *accounts, bool *
     return 0;
 }
 
-void transfer(accountDetails *loggedInAccount, accountDetails *accounts, favoriteDetails *favorite, int *numAccounts) {
+void transfer(accountDetails *loggedInAccount, accountDetails *accounts[MAX_ACCOUNTS], favoriteDetails **favorite, int *numAccounts) {
     printf("\033[2J"); // Clear entire screen
     printf("\033[0m"); //reset color
     printf("\033[0;37m"); //grey
@@ -557,7 +559,7 @@ void transfer(accountDetails *loggedInAccount, accountDetails *accounts, favorit
                 // viewRequest()
                 break;
             case 4:
-                editFavorites(accounts, favorite, numAccounts);
+                editFavorites(accounts, *favorite, numAccounts);
                 break;
             case 5: 
                 // back()
@@ -589,16 +591,21 @@ void transfer(accountDetails *loggedInAccount, accountDetails *accounts, favorit
 // }
 
 
-void editFavorites(accountDetails *accounts, favoriteDetails *favorite, int *numAccounts) {
+void editFavorites(accountDetails **accounts, favoriteDetails *favorite, int *numAccounts) {
     bool continueEditing = true;
+    bool *continueEditingPointer = &continueEditing;
     // 0x16fdf01b7
     // 0x16fdf0240000064
-    while(continueEditing) {
+    // <read memory from 0x747365776566 failed (0 of 8 bytes read)>
+    // favoriteDetails *favorite2 = favorite;
+
+    while(*continueEditingPointer) {
         int favoriteChoice;
         int numberOfFavorites = 0;
         bool hasFavorite = false;
         // char 
-
+        // <parent failed to evaluate: parent failed to evaluate: read memory from 0x747365776566 failed (0 of 8 bytes read)>
+        // <read memory from 0x747365776566 failed (0 of 8 bytes read)>
         printf("\nYour favorites: \n");
         if (strcmp(favorite->fav1, "{}")) {
             numberOfFavorites++;
@@ -630,7 +637,7 @@ void editFavorites(accountDetails *accounts, favoriteDetails *favorite, int *num
 
         switch(favoriteChoice) {
             case 1:
-                continueEditing = false;
+                *continueEditingPointer = false;
                 break;
             case 2:
                 // edit
@@ -638,11 +645,12 @@ void editFavorites(accountDetails *accounts, favoriteDetails *favorite, int *num
             case 3:
                 if (numberOfFavorites < 3) {
                     addFavorite(favorite, numberOfFavorites, accounts, numAccounts);
-                    // continueEditing = false;
 
                 } else {
                     printf("\nYou already have the maximum amount of favorites, please select edit favorites instead\n");
                 }
+                *continueEditingPointer = true;
+
                 break;
             default:
                 printf("Invalid input- please input either a 1, 2, or 3 (only if you have less than 3 favorites)");
@@ -652,7 +660,7 @@ void editFavorites(accountDetails *accounts, favoriteDetails *favorite, int *num
     
 }
 
-void addFavorite(favoriteDetails *favorite, int numberOfFavorites, accountDetails *accounts, int *numAccounts) {
+void addFavorite(favoriteDetails *favorite, int numberOfFavorites, accountDetails **accounts, int *numAccounts) {
     bool goodUser = false;
     char *user;
 
@@ -660,7 +668,7 @@ void addFavorite(favoriteDetails *favorite, int numberOfFavorites, accountDetail
         printf("\nEnter a valid Username to add as favorite: ");
         scanf("%s", user);
 
-        if (userExists(user, accounts, numAccounts)) {
+        if (userExists(user, *accounts, numAccounts)) {
             goodUser = true;
         } else {
             printf("\nCould not find a user with that name. Please try again.\n");
@@ -677,21 +685,21 @@ void addFavorite(favoriteDetails *favorite, int numberOfFavorites, accountDetail
         strcpy(favorite->fav3, user);
     }
 
-    favorite = NULL;
-    accounts = NULL;
-    numAccounts = NULL;
+    // favorite = NULL;
+    // accounts = NULL;
+    // numAccounts = NULL;
 }
 
 int userExists(char *user, accountDetails *accounts, int *numAccounts) {
 
     for (int i = 0; i < *numAccounts; i++) {
-        accountDetails *account = &accounts[i];
-        if (!strcmp(account->username, user)) {
+        accountDetails account = accounts[i];
+        if (!strcmp(account.username, user)) {
             return 1;
         }
     }
-    user = NULL;
-    accounts = NULL;
-    numAccounts = NULL;
+    // user = NULL;
+    // accounts = NULL;
+    // numAccounts = NULL;
     return 0;
 }
