@@ -61,7 +61,7 @@ int main() {
 
     printf("---------------------------------------------------------------------------------------\n");
     printf("\033[1m"); // Bold text
-    printf("\t\t\tWelcome to BB (Boris' Bank)\n");
+    printf("\t\t\t\tWelcome to BB\n");
     printf("\033[0m"); //reset text
     int accountNumber = 0;
     
@@ -217,7 +217,6 @@ void clearBuffer() {
 int initialize(DatabaseManager *db) {
     FILE *fp = fopen(db->filename, "r");
     if (fp == NULL) {
-        perror("fp error");
         return 1;
     } else {
         return 0;
@@ -232,7 +231,7 @@ int loadAccounts(accountDetails *accounts, int *numAccounts, int *accountNumber,
     }
     rewind(fp);
 
-    printf("\t\t\t    Loading accounts...\n");
+    printf("\t\t\t     Loading accounts...\n");
     while ((fscanf(fp, "%99[^,],%99[^,],%d,%f\n", accounts[*numAccounts].username, accounts[*numAccounts].pw, &accounts[*numAccounts].accountNum, &accounts[*numAccounts].balance)== 4) && 
     (*numAccounts < MAX_ACCOUNTS)) {
 
@@ -243,9 +242,7 @@ int loadAccounts(accountDetails *accounts, int *numAccounts, int *accountNumber,
         }
         
         strcpy(decryptedUser, accounts[*numAccounts].username);
-        printf("Encrypted string: %s\n", decryptedUser);
         decryptString(decryptedUser, shift);
-        printf("Decrypted string: %s\n", decryptedUser);
         strcpy(accounts[*numAccounts].username, decryptedUser);
 
         int decryptedPw;
@@ -300,7 +297,7 @@ void createAccount(accountDetails *accounts, int *numAccounts, int *accountNumbe
     while (cont) {
         cont = false;
 
-        printf("\n\nCREATE ACCOUNT\n");
+        printf("\n\nCREATE ACCOUNT (Input any sequence of characters and/or integers for both fields; however do not input spaces)\n");
         printf("   Username: ");
         scanf("%s", user);
         printf("\n   Password: ");
@@ -325,22 +322,15 @@ void createAccount(accountDetails *accounts, int *numAccounts, int *accountNumbe
             }
         }
     }
-    (*numAccounts)++;
-    printf("\nNum Accounts: %d\n", *numAccounts);
 
+    (*numAccounts)++;
     float balance = 0;
     (*accountNumber)++;
-    printf("Accounts nums: %d\n", *accountNumber);
 
     strcpy(lastAccount->username,toLowerCase(user));
     strcpy(lastAccount->pw, toLowerCase(pw));
     lastAccount->accountNum = *accountNumber;
     lastAccount->balance = balance;
-
-    printf("User: %s", lastAccount->username);
-    printf("User: %s", lastAccount->pw);
-    printf("User: %d", lastAccount->accountNum);
-    printf("User: %f", lastAccount->balance);
 
     char *encryptedUser;
     encryptedUser = malloc(strlen(lastAccount->username) + 1);
@@ -516,193 +506,3 @@ int encryptInteger(int num, int shift) {
 int decryptInteger(int num, int shift) {
     return (num-shift);
 }
-
-
-
-
-
-
-
-
-
-
-
-// void transfer(accountDetails *loggedInAccount, accountDetails *accounts, favoriteDetails *favorite, int *numAccounts) {
-//     printf("\033[2J"); //Clear entire screen
-//     printf("\033[0m"); //reset color
-//     printf("\033[0;37m"); //grey
-//     printf("User\t\t\t\t  Account Number\t\t\t\tBalance\n");
-//     printf("\033[0m"); //reset color
-//     printf("---------------------------------------------------------------------------------------\n");
-//     printf("\033[0;34m"); //blue text
-//     printf("\033[1m"); //Bold text
-//     printf("%s", loggedInAccount->username);
-//     printf("\t\t\t\t\t%d", loggedInAccount->accountNum);
-//     printf("\t\t\t\t\t%.2f\n", loggedInAccount->balance);
-//     printf("\033[0m"); //reset text
-//     printf("\033[1m"); //Bold text
-//     printf("\n\t\t\t\t  TRANSFER MENU\n\n");
-//     printf("\033[0m"); //reset text
-
-//     int transferChoice;
-//     bool continueTransfer = true;
-
-//     while (continueTransfer) {
-//         printf("\t\b\b\b1. Request\n\t\b\b\b2. Send\n\t\b\b\b3. View Requests\n\t\b\b\b4. Edit Favorites\n\t\b\b\b5. Back\nChoice: ");
-//         scanf("%d", &transferChoice);
-
-//         switch(transferChoice) {
-//             case 1: 
-//                 // request(loggedInAccount, accounts);
-//                 break;
-//             case 2:
-//                 // send()
-//                 break;
-//             case 3:
-//                 // viewRequest()
-//                 break;
-//             case 4:
-//                 editFavorites(&accounts, favorite, numAccounts);
-//                 break;
-//             case 5: 
-//                 // back()
-//                 break;
-//             default:
-//                 printf("Invalid input- please input either a 1, 2, 3, or 4");
-//                 break;
-//         }
-//         // continueTransfer = false;
-//     }
-// }
-
-// void request(accountDetails *loggedInAccount, accountDetails *accounts, favoriteDetails *favorites) {
-//     int requestChoice;
-//     printf("\t\b\b\b1. Search by Favorites\n\t\b\b\b2. Search by Username\n\t\b\b\b3. Back\nChoice: ");
-//     scanf("%d", &requestChoice);
-
-//     switch(requestChoice) {
-//         case 1:
-//             // search favs
-//         case 2:
-//             // search user
-//         case 3:
-//             // back
-//         default:
-//             printf("Invalid input- please input either a 1, 2, or 3");
-//     }
-
-// }
-
-
-// void editFavorites(accountDetails **accounts, favoriteDetails *favorite, int *numAccounts) {
-//     bool continueEditing = true;
-//     bool *continueEditingPointer = &continueEditing;
-//     // 0x16fdf01b7
-//     // 0x16fdf0240000064
-//     // <read memory from 0x747365776566 failed (0 of 8 bytes read)>
-//     // favoriteDetails *favorite2 = favorite;
-
-//     while(*continueEditingPointer) {
-//         int favoriteChoice;
-//         int numberOfFavorites = 0;
-//         bool hasFavorite = false;
-//         // char 
-//         // <parent failed to evaluate: parent failed to evaluate: read memory from 0x747365776566 failed (0 of 8 bytes read)>
-//         // <read memory from 0x747365776566 failed (0 of 8 bytes read)>
-//         printf("\nYour favorites: \n");
-//         if (strcmp(favorite->fav1, "{}")) {
-//             numberOfFavorites++;
-//             printf("\t\b\b\b%s\n", favorite->fav1);
-//             hasFavorite = true;
-//         }
-//         if (strcmp(favorite->fav2, "{}")) {
-//             numberOfFavorites++;
-//             printf("\t\b\b\b%s\n", favorite->fav2);
-//             hasFavorite = true;
-//         }
-//         if (strcmp(favorite->fav3, "{}")) {
-//             numberOfFavorites++;
-//             printf("\t\b\b\b%s\n", favorite->fav3);
-//             hasFavorite = true;
-//         }
-//         if (!hasFavorite) {
-//             printf("\t\b\b\bYou have no favorites :(\n");
-//         }
-
-
-//         printf("You have %d favorites out of 3.\n\t\b\b\b1. Back\n\t\b\b\b2. Edit Existing Favorite\n\t\b\b\b", numberOfFavorites);
-//         if (numberOfFavorites < 3) {
-//             printf("3. Add Favorite");
-//         }
-
-//         printf("\nChoice: ");
-//         scanf("%d", &favoriteChoice);
-
-//         switch(favoriteChoice) {
-//             case 1:
-//                 *continueEditingPointer = false;
-//                 break;
-//             case 2:
-//                 // edit
-//                 break;
-//             case 3:
-//                 if (numberOfFavorites < 3) {
-//                     addFavorite(favorite, numberOfFavorites, accounts, numAccounts);
-
-//                 } else {
-//                     printf("\nYou already have the maximum amount of favorites, please select edit favorites instead\n");
-//                 }
-//                 *continueEditingPointer = true;
-
-//                 break;
-//             default:
-//                 printf("Invalid input- please input either a 1, 2, or 3 (only if you have less than 3 favorites)");
-//                 break;
-//         }
-//     }
-    
-// }
-
-// void addFavorite(favoriteDetails *favorite, int numberOfFavorites, accountDetails **accounts, int *numAccounts) {
-//     bool goodUser = false;
-//     char *user;
-
-//     while (!goodUser) {
-//         printf("\nEnter a valid Username to add as favorite: ");
-//         scanf("%s", user);
-
-//         if (userExists(user, &accounts, numAccounts)) {
-//             goodUser = true;
-//         } else {
-//             printf("\nCould not find a user with that name. Please try again.\n");
-//             user = "\0"; //so that user can be global 
-//         }
-//     }
-
-    
-//     if (numberOfFavorites == 0) {
-//         strcpy(favorite->fav1, user);
-//     } else if (numberOfFavorites == 1) {
-//         strcpy(favorite->fav2, user);
-//     } else if (numberOfFavorites == 2) {
-//         strcpy(favorite->fav3, user);
-//     }
-
-//     // favorite = NULL;
-//     // accounts = NULL;
-//     // numAccounts = NULL;
-// }
-
-// int userExists(char *user, accountDetails *accounts, int *numAccounts) {
-
-//     for (int i = 0; i < *numAccounts; i++) {
-//         // accountDetails account = *accounts[i];
-//         if (!strcmp(&accounts[i].username, user)) {
-//             return 1;
-//         }
-//     }
-//     // user = NULL;
-//     // accounts = NULL;
-//     // numAccounts = NULL;
-//     return 0;
-// }
