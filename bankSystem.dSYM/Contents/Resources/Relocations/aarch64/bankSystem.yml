@@ -2,6 +2,12 @@
 triple:          'arm64-apple-darwin'
 binary-path:     '/Users/borisgans/vsProjects/introProgramming/bankSystem/bankSystem'
 relocations:
-  - { offsetInCU: 0x26, offset: 0x26, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x0, symBinAddr: 0x100003E0C, symSize: 0xC4 }
-  - { offsetInCU: 0x41, offset: 0x41, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x0, symBinAddr: 0x100003E0C, symSize: 0xC4 }
+  - { offsetInCU: 0x26, offset: 0x26, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x0, symBinAddr: 0x100002D00, symSize: 0x1F8 }
+  - { offsetInCU: 0x50, offset: 0x50, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x0, symBinAddr: 0x100002D00, symSize: 0x1F8 }
+  - { offsetInCU: 0xE1, offset: 0xE1, size: 0x8, addend: 0x0, symName: _initialize, symObjAddr: 0x1F8, symBinAddr: 0x100002EF8, symSize: 0x68 }
+  - { offsetInCU: 0x117, offset: 0x117, size: 0x8, addend: 0x0, symName: _loadAccounts, symObjAddr: 0x260, symBinAddr: 0x100002F60, symSize: 0x1B0 }
+  - { offsetInCU: 0x177, offset: 0x177, size: 0x8, addend: 0x0, symName: _createAccount, symObjAddr: 0x410, symBinAddr: 0x100003110, symSize: 0x424 }
+  - { offsetInCU: 0x289, offset: 0x289, size: 0x8, addend: 0x0, symName: _login, symObjAddr: 0x834, symBinAddr: 0x100003534, symSize: 0x3CC }
+  - { offsetInCU: 0x371, offset: 0x371, size: 0x8, addend: 0x0, symName: _toLowerCase, symObjAddr: 0xC00, symBinAddr: 0x100003900, symSize: 0x9C }
+  - { offsetInCU: 0x3D1, offset: 0x3D1, size: 0x8, addend: 0x0, symName: _saveAccounts, symObjAddr: 0xC9C, symBinAddr: 0x10000399C, symSize: 0xD0 }
 ...
